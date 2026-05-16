@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Noto_Sans_Arabic } from "next/font/google";
 import "./globals.css";
-import { brand } from "@/config/brand";
+import { LanguageProvider } from "@/components/language-provider";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const notoSansArabic = Noto_Sans_Arabic({
+  variable: "--font-noto-arabic",
+  subsets: ["arabic"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: `${brand.name} | Premium Desserts`,
-  description: `Order handcrafted desserts in ${brand.city} and send your order directly on WhatsApp.`,
+  title: "Coco Treats · Homemade Desserts in Muscat",
+  description:
+    "Order fresh tiramisu and jelly cheesecake from Coco Treats in Muscat through WhatsApp.",
 };
 
 export default function RootLayout({
@@ -26,9 +30,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      dir="ltr"
+      className={`${inter.variable} ${notoSansArabic.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-[#fdf8f2] text-[#4b2e21]">{children}</body>
+      <body className="min-h-full font-sans text-[color:var(--foreground)]">
+        <LanguageProvider>{children}</LanguageProvider>
+      </body>
     </html>
   );
 }

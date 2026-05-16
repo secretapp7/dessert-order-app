@@ -1,8 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fdf8f2;
-  --foreground: #4b2e21;
+  --brand-burgundy: #5a0016;
+  --brand-burgundy-strong: #6b0f22;
+  --brand-burgundy-2: #6b0f22;
+  --brand-burgundy-soft: #6b0f22;
+  --brand-red-wine: #7a1128;
+  --brand-gold: #d8b45f;
+  --brand-gold-soft: #e7c97a;
+  --brand-gold-muted: #b8924a;
+  --card-cream: #fff8ee;
+  --card-beige: #f4e8d6;
+  --background: #fff8ee;
+  --foreground: #3a201a;
+  --muted-text: #6a4a3f;
+  --soft-border: rgba(216, 180, 95, 0.35);
+  --border-soft: var(--soft-border);
+
+  --accent-blush: var(--brand-gold-soft);
+  --accent-gold: var(--brand-gold);
+  --accent-cocoa: #3a201a;
+  --header-cocoa: #5a0016;
+  --deep-cocoa: #4a0a18;
+  --bottom-nav-h: 4.25rem;
 }
 
 html {
@@ -12,17 +32,88 @@ html {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), var(--font-noto-arabic), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(180deg, #f6ecde 0%, var(--background) 30%, var(--background) 100%);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   overflow-x: hidden;
 }
 
+/** Soft luminous wash behind hero logo (readable burgundy SVG on light surface). */
+.home-hero-logo-halo {
+  background: radial-gradient(
+    ellipse 78% 65% at 50% 45%,
+    rgba(248, 234, 199, 0.88) 0%,
+    rgba(244, 232, 214, 0.38) 45%,
+    transparent 72%
+  );
+}
+
 * {
-  border-color: #e7d4c2;
+  border-color: var(--border-soft);
+}
+
+/** Subtle lift for burgundy SVG marks on burgundy headers (no cream box). */
+.brand-logo-on-dark {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 12px rgba(231, 201, 122, 0.38));
+}
+
+@keyframes ds-visual-shimmer {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scale(1.03) translate3d(1%, -1%, 0);
+  }
+}
+
+@keyframes ds-soft-glow {
+  0%,
+  100% {
+    opacity: 0.26;
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    opacity: 0.4;
+    transform: translate3d(-2%, 2%, 0);
+  }
+}
+
+.ds-visual-fallback-shimmer {
+  animation: ds-visual-shimmer 18s ease-in-out infinite;
+}
+
+.ds-product-card-glow {
+  animation: ds-soft-glow 16s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .ds-visual-fallback-shimmer,
+  .ds-product-card-glow {
+    animation: none;
+  }
+
+  .brand-logo-on-dark {
+    filter: none;
+  }
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--brand-gold);
+  outline-offset: 2px;
+}
+
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible) {
+  outline: none;
 }
