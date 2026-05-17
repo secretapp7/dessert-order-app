@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { createOrderAction } from "@/app/actions/orders";
 import { ProductVisual } from "@/components/product-visual";
 import { formatLocaleQuantity } from "@/components/review-format";
 import { brand } from "@/config/brand";
@@ -10,6 +11,10 @@ import { FULFILLMENT, type FulfillmentMethod } from "@/config/fulfillment";
 import { products } from "@/data/products";
 import type { AppLanguage } from "@/config/translations";
 import { translations } from "@/config/translations";
+import { buildWhatsappOrderLines, joinWhatsappMessage } from "@/lib/orders/build-whatsapp-order-message";
+import { ADDRESS_MIN_CHARS } from "@/lib/orders/constants";
+import { hasDeliveryLocationMethod } from "@/lib/orders/location-rules";
+import { isHttpsOrHttpUrl } from "@/lib/orders/http-url";
 import {
   easePremium,
   scaleTapWhile,
@@ -39,9 +44,6 @@ type OrderFormState = {
   notes: string;
 };
 
-const ADDRESS_MIN_CHARS = 8;
-const ADDRESS_FALLBACK_WITHOUT_LINK_CHARS = 22;
-
 const initialProduct = products[0];
 const initialSize = initialProduct.sizes[0].id;
 
@@ -51,43 +53,6 @@ const inputStyles =
 
 function buildMapsLatLngUrl(lat: number, lng: number): string {
   return `https://www.google.com/maps?q=${lat},${lng}`;
-}
-
-function isHttpsOrHttpUrl(value: string): boolean {
-  const v = value.trim();
-  return /^https:\/\//i.test(v) || /^http:\/\//i.test(v);
-}
-
-function hasLocationMethod(opts: {
-  gps: GpsCapture | null;
-  mapsPaste: string;
-  address: string;
-}): boolean {
-  if (opts.gps) return true;
-  const paste = opts.mapsPaste.trim();
-  if (paste && isHttpsOrHttpUrl(paste)) return true;
-  return opts.address.trim().length >= ADDRESS_FALLBACK_WITHOUT_LINK_CHARS;
-}
-
-function formatNeededDate(language: AppLanguage, isoDate: string): string {
-  if (!isoDate) return "";
-  const parts = isoDate.split("-").map((p) => Number(p));
-  const y = parts[0];
-  const mo = parts[1];
-  const d = parts[2];
-  if (!y || !mo || !d) return isoDate;
-  const utc = Date.UTC(y, mo - 1, d);
-  try {
-    return new Date(utc).toLocaleDateString(language === "ar" ? "ar-OM" : "en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-  } catch {
-    return isoDate;
-  }
 }
 
 function geolocationErrorText(
@@ -100,62 +65,6 @@ function geolocationErrorText(
   if (!err) return geo.unknownError;
   if (err.code === 1) return geo.permissionDenied;
   return geo.positionError;
-}
-
-function buildLocalizedOrderMessage(opts: {
-  wt: (typeof translations)["en"]["whatsappOrder"];
-  form: OrderFormState;
-  gps: GpsCapture | null;
-  dessertName: string;
-  sizeLine: string;
-  qty: number;
-  dateFormatted: string;
-  fulfillmentLabel: string;
-  estimated: number;
-}): string[] {
-  const { wt } = opts;
-  const none = wt.none;
-
-  const lines: string[] = [
-    wt.title,
-    "",
-    wt.customerDetails,
-    `${wt.labelName}: ${opts.form.customerName.trim() || none}`,
-    `${wt.labelPhone}: ${opts.form.phoneNumber.trim() || none}`,
-    "",
-    wt.orderDetails,
-    `${wt.labelDessert}: ${opts.dessertName}`,
-    `${wt.labelSize}: ${opts.sizeLine}`,
-    `${wt.labelQuantity}: ${opts.qty}`,
-    `${wt.labelDateNeeded}: ${opts.dateFormatted || none}`,
-    `${wt.labelOrderType}: ${opts.fulfillmentLabel}`,
-  ];
-
-  if (opts.form.fulfillmentMethod === FULFILLMENT.PICKUP) {
-    lines.push("", wt.pickupNote);
-  } else {
-    const linkLines: string[] = [];
-    if (opts.gps) {
-      linkLines.push(`${wt.locationGpsPrefix} ${opts.gps.mapsUrl}`);
-    }
-    const pasted = opts.form.mapsLinkPasted.trim();
-    if (pasted && isHttpsOrHttpUrl(pasted)) {
-      linkLines.push(`${wt.locationPastedPrefix} ${pasted}`);
-    }
-    const mergedLinks = linkLines.length > 0 ? linkLines.join("\n") : none;
-    lines.push(
-      "",
-      wt.deliveryDetails,
-      `${wt.labelLocationLink}:`,
-      mergedLinks,
-      "",
-      `${wt.labelAddressDetails}: ${opts.form.addressDetails.trim() || none}`,
-    );
-  }
-
-  lines.push("", `${wt.labelNotes}: ${opts.form.notes.trim() || none}`, "", `${wt.labelEstimatedTotal}: ${opts.estimated.toFixed(2)} ${brand.currency}`);
-
-  return lines;
 }
 
 function MotionSection({
@@ -230,7 +139,7 @@ type OrderFormProps = {
 
 export function OrderForm({ language, initialProductId, initialSizeId }: OrderFormProps) {
   const t = translations[language];
-  const wt = translations[language].whatsappOrder;
+  const biz = translations[language].businessNotes;
   const reduced = useReducedMotion() ?? false;
   const tapScale = scaleTapWhile(reduced);
 
@@ -261,6 +170,8 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
 
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [copiedMessage, setCopiedMessage] = useState(false);
+  const [orderPersistPhase, setOrderPersistPhase] = useState<null | "saving" | "opening">(null);
+  const [persistFailed, setPersistFailed] = useState(false);
 
   const selectedProduct =
     products.find((product) => product.id === form.productId) ?? initialProduct;
@@ -269,10 +180,13 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
   const selectedSize = availableSizes.find((size) => size.id === form.sizeId) ?? availableSizes[0];
   const estimatedTotal = selectedSize.priceOmr * form.quantity;
 
-  const hasMapPaste = Boolean(form.mapsLinkPasted.trim() && isHttpsOrHttpUrl(form.mapsLinkPasted));
   const showLocationAddedInSummary =
     form.fulfillmentMethod === FULFILLMENT.DELIVERY &&
-    Boolean((gps && geoUi === "success") || hasMapPaste);
+    hasDeliveryLocationMethod({
+      gps,
+      mapsPaste: form.mapsLinkPasted,
+      address: form.addressDetails,
+    });
 
   const validationErrors: OrderFormValidation = (() => {
     const errors: OrderFormValidation = {};
@@ -321,7 +235,7 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
     }
 
     if (
-      !hasLocationMethod({
+      !hasDeliveryLocationMethod({
         gps,
         mapsPaste: form.mapsLinkPasted,
         address: form.addressDetails,
@@ -335,28 +249,22 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
 
   const isValid = Object.keys(validationErrors).length === 0;
 
-  const dateFormattedForMessage = formatNeededDate(language, form.dateNeeded);
-
   const dessertName = selectedProduct.name[language];
   const sizeLine = `${selectedSize.label[language]} (${selectedSize.serves[language]})`;
-  const fulfillmentLabel =
-    form.fulfillmentMethod === FULFILLMENT.PICKUP
-      ? t.form.fulfillmentOptions.pickup
-      : t.form.fulfillmentOptions.delivery;
 
-  const orderMessageLines = buildLocalizedOrderMessage({
-    wt,
+  const orderMessageLines = buildWhatsappOrderLines({
+    language,
     form,
     gps: form.fulfillmentMethod === FULFILLMENT.DELIVERY ? gps : null,
     dessertName,
     sizeLine,
     qty: form.quantity,
-    dateFormatted: dateFormattedForMessage,
-    fulfillmentLabel,
     estimated: estimatedTotal,
   });
 
-  const orderMessage = orderMessageLines.join("\n");
+  const isDelivery = form.fulfillmentMethod === FULFILLMENT.DELIVERY;
+
+  const orderMessage = joinWhatsappMessage(orderMessageLines);
   const normalizedPhone = brand.whatsappNumber.replace(/\D/g, "");
   const whatsappHref = `https://api.whatsapp.com/send?phone=${normalizedPhone}&text=${encodeURIComponent(orderMessage)}`;
 
@@ -420,15 +328,61 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
     );
   }
 
-  function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAttemptedSubmit(true);
+    setPersistFailed(false);
 
     if (!isValid) {
       return;
     }
 
+    const gpsPayload =
+      form.fulfillmentMethod === FULFILLMENT.DELIVERY && gps
+        ? {
+            lat: gps.lat,
+            lng: gps.lng,
+            mapsUrl: gps.mapsUrl,
+            ...(gps.accuracyM !== undefined ? { accuracyM: gps.accuracyM } : {}),
+          }
+        : undefined;
+
+    setOrderPersistPhase("saving");
+
+    try {
+      const result = await createOrderAction({
+        customerName: form.customerName.trim(),
+        customerPhone: form.phoneNumber.trim(),
+        productId: form.productId,
+        productSizeId: form.sizeId,
+        quantity: form.quantity,
+        dateNeeded: form.dateNeeded,
+        fulfillmentMethod: form.fulfillmentMethod,
+        mapsLinkPasted: form.mapsLinkPasted,
+        addressDetails: form.addressDetails,
+        notes: form.notes,
+        language,
+        ...(gpsPayload ? { gps: gpsPayload } : {}),
+      });
+
+      if (result.success) {
+        setOrderPersistPhase("opening");
+        window.open(result.whatsappUrl, "_blank", "noopener,noreferrer");
+        queueMicrotask(() => setOrderPersistPhase(null));
+        return;
+      }
+
+      setOrderPersistPhase(null);
+      setPersistFailed(true);
+    } catch {
+      setOrderPersistPhase(null);
+      setPersistFailed(true);
+    }
+  }
+
+  function openWhatsappWithoutSaving() {
     window.open(whatsappHref, "_blank", "noopener,noreferrer");
+    setPersistFailed(false);
   }
 
   async function onCopyMessage() {
@@ -452,6 +406,7 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
       <motion.div variants={staggerItemVariants(reduced)} className="text-center">
         <h2 className="text-[18px] font-bold tracking-tight text-[color:var(--accent-cocoa)]">{t.form.title}</h2>
         <p className="mt-1 text-[11px] leading-snug text-[color:var(--foreground)]/68">{t.form.subtitle}</p>
+        <p className="mx-auto mt-2 max-w-[20rem] text-[10px] leading-snug text-[color:var(--foreground)]/55">{biz.preorder24h}</p>
       </motion.div>
 
       <motion.div
@@ -509,11 +464,35 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
             </AnimatePresence>
           </div>
         </div>
-        <div className="flex items-center justify-between border-t border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-4 py-3">
-          <span className="text-[11px] font-semibold text-[color:var(--foreground)]/65">{t.form.estimatedTotal}</span>
-          <span className="text-[18px] font-bold tabular-nums text-[color:var(--accent-cocoa)]">
-            {estimatedTotal.toFixed(2)} {brand.currency}
-          </span>
+        <div className="space-y-2 border-t border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-3 py-2.5">
+          <div className="flex items-start justify-between gap-2 text-[10px]">
+            <span className="pt-0.5 font-semibold text-[color:var(--foreground)]/62">{t.form.summaryDessertSubtotal}</span>
+            <span className="shrink-0 font-bold tabular-nums text-[color:var(--foreground)]">
+              {estimatedTotal.toFixed(2)} {brand.currency}
+            </span>
+          </div>
+          {isDelivery ? (
+            <div className="flex items-start justify-between gap-2 border-t border-dashed border-[color:var(--border-soft)] pt-2 text-[10px]">
+              <span className="font-semibold text-[color:var(--foreground)]/62">{t.form.summaryDeliveryFeeLabel}</span>
+              <span className="max-w-[63%] text-end font-medium leading-snug text-[color:var(--foreground)]/72">
+                {t.form.summaryDeliveryFeeConfirmed}
+              </span>
+            </div>
+          ) : (
+            <p className="border-t border-dashed border-[color:var(--border-soft)] pt-2 text-[9px] leading-snug text-[color:var(--foreground)]/62">
+              {t.form.summaryPickupLine}
+            </p>
+          )}
+          <div className="flex items-center justify-between gap-2 border-t border-[color:var(--border-soft)] pt-2">
+            <span className="text-[11px] font-bold text-[color:var(--accent-cocoa)]">{t.form.estimatedTotal}</span>
+            <span className="text-[17px] font-bold tabular-nums text-[color:var(--accent-cocoa)]">
+              {estimatedTotal.toFixed(2)} {brand.currency}
+            </span>
+          </div>
+          <p className="text-[9px] leading-snug text-[color:var(--foreground)]/56">
+            <span className="font-semibold text-[color:var(--brand-burgundy-soft)]">{t.form.summaryFulfillmentInline}:</span>{" "}
+            {isDelivery ? t.form.fulfillmentOptions.delivery : t.form.fulfillmentOptions.pickup}
+          </p>
         </div>
       </motion.div>
 
@@ -762,6 +741,8 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
                 message={validationErrors.deliveryLocationMethod}
                 reduced={reduced}
               />
+
+              <p className="text-[9px] leading-snug text-[color:var(--foreground)]/62">{biz.deliveryFeeWhatsApp}</p>
             </motion.div>
           ) : null}
         </MotionSection>
@@ -777,8 +758,10 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
               rows={3}
             />
           </label>
-          <div className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-3 py-2 text-[10px] leading-relaxed text-[color:var(--foreground)]/72">
-            {t.form.orderConfirmationNote}
+          <div className="space-y-1.5 rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-3 py-2 text-[10px] leading-snug text-[color:var(--foreground)]/70">
+            <p>{t.form.orderConfirmationNote}</p>
+            <p>{biz.paymentWhatsApp}</p>
+            {isDelivery ? <p>{biz.deliveryFeeWhatsApp}</p> : null}
           </div>
         </MotionSection>
 
@@ -787,10 +770,65 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
           variants={staggerItemVariants(reduced)}
           whileTap={tapScale}
           transition={{ duration: 0.15 }}
-          className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-[color:var(--brand-gold-muted)]/45 bg-[color:var(--brand-burgundy)] px-4 py-3 text-[13px] font-semibold text-[color:var(--card-cream)] shadow-[0_10px_28px_-14px_rgba(65,6,19,0.45)] ring-1 ring-[color:var(--border-soft)] transition-[filter] hover:brightness-[1.03] focus-visible:outline-none active:brightness-95"
+          disabled={orderPersistPhase === "saving" || orderPersistPhase === "opening"}
+          aria-busy={orderPersistPhase === "saving"}
+          className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-[color:var(--brand-gold-muted)]/45 bg-[color:var(--brand-burgundy)] px-4 py-3 text-[13px] font-semibold text-[color:var(--card-cream)] shadow-[0_10px_28px_-14px_rgba(65,6,19,0.45)] ring-1 ring-[color:var(--border-soft)] transition-[filter] hover:brightness-[1.03] focus-visible:outline-none active:brightness-95 disabled:pointer-events-none disabled:opacity-60"
         >
           {t.form.sendWhatsapp}
         </motion.button>
+
+        <AnimatePresence mode="sync">
+          {orderPersistPhase === "saving" ? (
+            <motion.p
+              key="order-saving"
+              role="status"
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduced ? 0.12 : 0.18, ease: easePremium }}
+              className="px-1 text-center text-[10px] font-medium text-[color:var(--brand-gold-muted)]"
+            >
+              {t.orderSave.saving}
+            </motion.p>
+          ) : orderPersistPhase === "opening" ? (
+            <motion.p
+              key="order-opening"
+              role="status"
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduced ? 0.12 : 0.18, ease: easePremium }}
+              className="px-1 text-center text-[10px] font-medium text-[color:var(--brand-gold-muted)]"
+            >
+              {t.orderSave.savedOpeningWhatsapp}
+            </motion.p>
+          ) : persistFailed ? (
+            <motion.p
+              key="order-failed"
+              role="alert"
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduced ? 0.12 : 0.18, ease: easePremium }}
+              className="px-1 text-center text-[10px] leading-snug text-[color:var(--brand-burgundy-soft)]"
+            >
+              {t.orderSave.saveFailed}
+            </motion.p>
+          ) : null}
+        </AnimatePresence>
+
+        {persistFailed ? (
+          <motion.button
+            type="button"
+            variants={staggerItemVariants(reduced)}
+            whileTap={tapScale}
+            transition={{ duration: 0.15 }}
+            className="flex min-h-11 w-full items-center justify-center rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-4 py-2.5 text-[11px] font-semibold text-[color:var(--brand-burgundy)] ring-1 ring-[color:var(--brand-gold-muted)]/20 focus-visible:outline-none active:bg-[color:var(--card-beige)]"
+            onClick={openWhatsappWithoutSaving}
+          >
+            {t.orderSave.whatsappWithoutSave}
+          </motion.button>
+        ) : null}
 
         <p className="px-1 text-center text-[10px] leading-relaxed text-[color:var(--foreground)]/62">{t.form.fallback}</p>
 

@@ -18,6 +18,14 @@ export default function ContactPage() {
   const tapScale = scaleTapWhile(reduced);
 
   const waHref = buildWhatsappUrl(t.contactPage.whatsappPrefill);
+  const { businessNotes } = t;
+
+  const infoPulse = [
+    { key: "pre", body: businessNotes.preorder24h },
+    { key: "confirm", body: t.contactPage.noteOrders },
+    { key: "deliver", body: businessNotes.deliveryFeeWhatsApp },
+    { key: "pay", body: businessNotes.paymentWhatsApp },
+  ] as const;
 
   const trust = [
     {
@@ -128,21 +136,39 @@ export default function ContactPage() {
 
           <motion.ul
             variants={staggerItemVariants(reduced)}
-            className="space-y-2.5 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-4 py-3 text-[10px] leading-relaxed text-[color:var(--foreground)]/75"
+            className="space-y-2 rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-3 py-3 text-[10px] leading-relaxed text-[color:var(--foreground)]/75"
           >
-            <li className="flex gap-2 border-b border-dashed border-[color:var(--border-soft)] pb-2">
-              <span className="mt-0.5 shrink-0 text-[color:var(--accent-gold)]" aria-hidden>
-                ●
-              </span>
-              <span>{t.contactPage.noteOrders}</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="mt-0.5 shrink-0 text-[color:var(--accent-gold)]" aria-hidden>
-                ●
-              </span>
-              <span>{t.contactPage.noteDelivery}</span>
-            </li>
+            {infoPulse.map((item, i) => (
+              <li key={item.key} className={`flex gap-2 ${i < infoPulse.length - 1 ? "border-b border-dashed border-[color:var(--border-soft)] pb-2" : ""}`}>
+                <span className="mt-0.5 shrink-0 text-[color:var(--accent-gold)]" aria-hidden>
+                  ●
+                </span>
+                <span>{item.body}</span>
+              </li>
+            ))}
           </motion.ul>
+
+          <motion.section
+            variants={staggerItemVariants(reduced)}
+            className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)]/90 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.62)]"
+          >
+            <h2 className="text-[11px] font-bold tracking-tight text-[color:var(--brand-burgundy)]">{t.faqSection.title}</h2>
+            <div className="mt-2 space-y-1.5">
+              {t.faqSection.items.map((item, index) => (
+                <details
+                  key={`${item.q}-${index}`}
+                  className="group rounded-xl border border-[color:var(--border-soft)]/90 bg-[color:var(--card-cream)] px-2.5 py-2"
+                >
+                  <summary className="cursor-pointer select-none text-[10px] font-semibold leading-snug text-[color:var(--foreground)] marker:text-[color:var(--brand-gold-muted)]">
+                    {item.q}
+                  </summary>
+                  <p className="mt-1.5 border-t border-dashed border-[color:var(--border-soft)] pt-1.5 text-[9px] leading-snug text-[color:var(--foreground)]/72">
+                    {item.a}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </motion.section>
         </motion.div>
       </ScreenEnter>
     </AppShell>

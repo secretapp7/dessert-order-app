@@ -66,6 +66,16 @@ type Translation = {
     trustPreorderBody: string;
     openInstagramProfile: string;
   };
+  /** Short policy lines shown across order/contact/product/WhatsApp footers */
+  businessNotes: {
+    preorder24h: string;
+    deliveryFeeWhatsApp: string;
+    paymentWhatsApp: string;
+  };
+  faqSection: {
+    title: string;
+    items: readonly { readonly q: string; readonly a: string }[];
+  };
   productCard: {
     startingFrom: string;
     view: string;
@@ -131,6 +141,11 @@ type Translation = {
       pickup: string;
       delivery: string;
     };
+    summaryDessertSubtotal: string;
+    summaryDeliveryFeeLabel: string;
+    summaryDeliveryFeeConfirmed: string;
+    summaryFulfillmentInline: string;
+    summaryPickupLine: string;
   };
   validation: {
     fullName: string;
@@ -181,6 +196,7 @@ type Translation = {
     labelAddressDetails: string;
     labelNotes: string;
     labelEstimatedTotal: string;
+    labelDessertSubtotal: string;
     pickupNote: string;
     locationGpsPrefix: string;
     locationPastedPrefix: string;
@@ -194,6 +210,12 @@ type Translation = {
   };
   waPrefill: {
     hello: string;
+  };
+  orderSave: {
+    saving: string;
+    savedOpeningWhatsapp: string;
+    saveFailed: string;
+    whatsappWithoutSave: string;
   };
 };
 
@@ -261,8 +283,38 @@ export const translations: Record<AppLanguage, Translation> = {
       trustDeliveryTitle: "Delivery by area",
       trustDeliveryBody: "Fees and slots depend on distance and how busy the kitchen is.",
       trustPreorderTitle: "Pre-order helps",
-      trustPreorderBody: "A day ahead gives Coco Treats time to bake, chill, and pack with care.",
+      trustPreorderBody: "Prefer 24 hours’ notice when you can—we need that window to bake, chill, and finish beautifully.",
       openInstagramProfile: "Open Instagram",
+    },
+    businessNotes: {
+      preorder24h: "Please order at least 24 hours in advance.",
+      deliveryFeeWhatsApp: "Delivery fee will be confirmed on WhatsApp depending on the area.",
+      paymentWhatsApp: "Payment method will be confirmed on WhatsApp.",
+    },
+    faqSection: {
+      title: "Quick answers",
+      items: [
+        {
+          q: "How early should I order?",
+          a: "Preferably at least 24 hours ahead so we have time to prepare, chill, and pack everything nicely.",
+        },
+        {
+          q: "Do you deliver?",
+          a: "Yes across Muscat when slots allow. The route and timing are confirmed together on WhatsApp, with the fee quoted for your area.",
+        },
+        {
+          q: "How do I pay?",
+          a: "We’ll agree the easiest option quietly on WhatsApp once your order looks good — nothing complicated.",
+        },
+        {
+          q: "How should I store the dessert?",
+          a: "Keep it refrigerated and serve chilled unless we tell you otherwise. Best eaten within the first day or two.",
+        },
+        {
+          q: "Can I customize my order?",
+          a: "Mention tweaks in WhatsApp notes or in your message thread — small changes are fine when timing allows.",
+        },
+      ],
     },
     productCard: {
       startingFrom: "From",
@@ -329,6 +381,11 @@ export const translations: Record<AppLanguage, Translation> = {
         pickup: "Pickup",
         delivery: "Delivery",
       },
+      summaryDessertSubtotal: "Desserts",
+      summaryDeliveryFeeLabel: "Delivery fee",
+      summaryDeliveryFeeConfirmed: "Confirmed on WhatsApp",
+      summaryFulfillmentInline: "Fulfillment",
+      summaryPickupLine: "Pickup • details on WhatsApp",
     },
     validation: {
       fullName: "Please enter your full name.",
@@ -379,7 +436,8 @@ export const translations: Record<AppLanguage, Translation> = {
       labelLocationLink: "Location link",
       labelAddressDetails: "Address details",
       labelNotes: "Notes",
-      labelEstimatedTotal: "Estimated total",
+      labelEstimatedTotal: "Estimated dessert total",
+      labelDessertSubtotal: "Dessert subtotal",
       pickupNote: "Pickup details will be confirmed on WhatsApp.",
       locationGpsPrefix: "GPS:",
       locationPastedPrefix: "Shared link:",
@@ -393,6 +451,13 @@ export const translations: Record<AppLanguage, Translation> = {
     },
     waPrefill: {
       hello: "Hello Coco Treats, I have a question about my order.",
+    },
+    orderSave: {
+      saving: "Saving order...",
+      savedOpeningWhatsapp: "Order saved. Opening WhatsApp…",
+      saveFailed:
+        "We could not save your order. Please try again or contact us on WhatsApp.",
+      whatsappWithoutSave: "Send on WhatsApp anyway",
     },
   },
   ar: {
@@ -458,8 +523,38 @@ export const translations: Record<AppLanguage, Translation> = {
       trustDeliveryTitle: "التوصيل حسب المنطقة",
       trustDeliveryBody: "المواعيد والتكلفة تعتمد على البعد وحجز الدفعة اليومية.",
       trustPreorderTitle: "نوصي بطلب مسبق",
-      trustPreorderBody: "يمنحنا الطلب المسبق وقتاً لنخبز ونبرد ونُغلّف طلبك كما يستحق.",
+      trustPreorderBody: "نُفضل يوماً قبل (24 ساعة على الأقل) إن أمكن؛ لنمنح أنفسنا وقتاً كافياً للخبز والتبريد والتغليف بحب.",
       openInstagramProfile: "فتح إنستغرام",
+    },
+    businessNotes: {
+      preorder24h: "يرجى الطلب قبل 24 ساعة على الأقل.",
+      deliveryFeeWhatsApp: "سيتم تأكيد رسوم التوصيل عبر واتساب حسب المنطقة.",
+      paymentWhatsApp: "سيتم تأكيد طريقة الدفع عبر واتساب.",
+    },
+    faqSection: {
+      title: "أسئلة سريعة",
+      items: [
+        {
+          q: "متى يجب أن أطلب؟",
+          a: "مفضلًا قبل يوم واحد على الأقل، عشان وقت كافي للتحضير والتبريد والتغليف بشكل أنيق.",
+        },
+        {
+          q: "هل يوجد توصيل؟",
+          a: "نعم ضمن مسقط حسب المواعيد والمنطقة. ننسّق الموعد والرسوم سويًا بالواتساب قبل تأكيد الطلب.",
+        },
+        {
+          q: "كيف يتم الدفع؟",
+          a: "بنحدّد الطريقة المناسبة ببساطة على الواتساب بعد مراجعة تفاصيل طلبكم.",
+        },
+        {
+          q: "كيف أحفظ الحلى؟",
+          a: "يُفضل البرادة والتقديم بارد؛ يُستهلك أفضل خلال اليوم الأول أو اليوم الثاني.",
+        },
+        {
+          q: "هل يمكن تخصيص الطلب؟",
+          a: "اذكرونا التعديل أو الفكرة في الملاحظات أو رسالة الواتساب، وبنقلكم إذا توافق مع التوقيت.",
+        },
+      ],
     },
     productCard: {
       startingFrom: "من",
@@ -526,6 +621,11 @@ export const translations: Record<AppLanguage, Translation> = {
         pickup: "استلام",
         delivery: "توصيل",
       },
+      summaryDessertSubtotal: "الحلوى",
+      summaryDeliveryFeeLabel: "رسوم التوصيل",
+      summaryDeliveryFeeConfirmed: "تُحدَّد عبر واتساب",
+      summaryFulfillmentInline: "التسليم",
+      summaryPickupLine: "استلام • التفاصيل على واتساب",
     },
     validation: {
       fullName: "يرجى إدخال الاسم الكامل.",
@@ -576,7 +676,8 @@ export const translations: Record<AppLanguage, Translation> = {
       labelLocationLink: "رابط الموقع",
       labelAddressDetails: "تفاصيل العنوان",
       labelNotes: "ملاحظات",
-      labelEstimatedTotal: "المجموع التقديري",
+      labelEstimatedTotal: "المجموع التقديري للحلوى",
+      labelDessertSubtotal: "مجموع الحلوى",
       pickupNote: "سيتم تأكيد تفاصيل الاستلام عبر واتساب.",
       locationGpsPrefix: "GPS:",
       locationPastedPrefix: "رابط مشاركة:",
@@ -590,6 +691,13 @@ export const translations: Record<AppLanguage, Translation> = {
     },
     waPrefill: {
       hello: "مرحباً كوكو تريتس، عندي استفسار بخصوص الطلب.",
+    },
+    orderSave: {
+      saving: "جاري حفظ الطلب...",
+      savedOpeningWhatsapp: "تم حفظ الطلب. سيتم فتح واتساب…",
+      saveFailed:
+        "لم نتمكن من حفظ طلبك. يرجى المحاولة مرة أخرى أو التواصل معنا عبر واتساب.",
+      whatsappWithoutSave: "الإرسال عبر واتساب بدون حفظ",
     },
   },
 };

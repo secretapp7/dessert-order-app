@@ -203,6 +203,7 @@ function ProductDetailInner({ productId }: { productId: string }) {
                 {t.productPage.preorderNote}
               </span>
             </div>
+            <p className="mt-2 max-w-xl text-[10px] leading-snug text-[color:var(--muted-text)]">{t.businessNotes.preorder24h}</p>
           </div>
 
           <div className="mt-4 space-y-2">
