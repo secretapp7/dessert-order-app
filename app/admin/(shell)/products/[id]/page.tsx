@@ -8,6 +8,7 @@ import {
   type SerializedImage,
   type SerializedSize,
 } from "@/components/admin/products/product-edit-forms";
+import { ProductLifecycleSection } from "@/components/admin/products/product-lifecycle-section";
 import { getCategoriesForSelect, getProductForAdmin } from "@/lib/admin/data/catalog-queries";
 
 function omr(v: unknown): string {
@@ -58,6 +59,10 @@ export default async function AdminEditProductPage({ params }: { params: Promise
           Back to list
         </Link>
       </div>
+
+      <section className="rounded-2xl border border-[color:var(--border-soft)] bg-white/80 p-4 shadow-sm">
+        <ProductLifecycleSection productId={product.id} slug={product.slug} />
+      </section>
 
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-white/80 p-4 shadow-sm">
         <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">Core details</h2>

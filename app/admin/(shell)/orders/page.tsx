@@ -15,6 +15,7 @@ export default async function AdminOrdersPage({
     q?: string;
     status?: string;
     fulfillment?: string;
+    archive?: string;
     page?: string;
   }>;
 }) {
@@ -34,12 +35,17 @@ export default async function AdminOrdersPage({
       ? (fulfillmentRaw as FulfillmentMethod)
       : undefined;
 
+  const archiveRaw = typeof sp.archive === "string" ? sp.archive : "";
+  const archiveFilter: "active" | "archived" | "all" =
+    archiveRaw === "archived" || archiveRaw === "all" ? archiveRaw : "active";
+
   const pageNum = Math.max(1, parseInt(typeof sp.page === "string" ? sp.page : "1", 10) || 1);
 
   const { total, rows, pageCount } = await getAdminOrdersList({
     q,
     orderStatus,
     fulfillmentMethod,
+    archive: archiveFilter,
     page: pageNum,
     pageSize: PAGE_SIZE,
   });
@@ -48,6 +54,7 @@ export default async function AdminOrdersPage({
   if (q) baseParams.set("q", q);
   if (orderStatus) baseParams.set("status", orderStatus);
   if (fulfillmentMethod) baseParams.set("fulfillment", fulfillmentMethod);
+  if (archiveFilter !== "active") baseParams.set("archive", archiveFilter);
 
   function hrefWithPage(p: number) {
     const next = new URLSearchParams(baseParams);
@@ -73,7 +80,13 @@ export default async function AdminOrdersPage({
         <div>
           <h1 className="text-2xl font-bold text-[color:var(--accent-cocoa)]">Orders</h1>
           <p className="mt-1 text-sm text-[color:var(--muted-text)]">
-            {total} order{total === 1 ? "" : "s"} · sorted newest first
+            {total} order{total === 1 ? "" : "s"} ·{" "}
+            {archiveFilter === "active"
+              ? "active (not archived)"
+              : archiveFilter === "archived"
+                ? "archived only"
+                : "including archived"}
+            {" · "}newest first
           </p>
         </div>
       </div>
@@ -119,6 +132,18 @@ export default async function AdminOrdersPage({
             ))}
           </select>
         </label>
+        <label className="text-xs font-semibold text-[color:var(--muted-text)]">
+          Visibility
+          <select
+            name="archive"
+            defaultValue={archiveFilter === "active" ? "" : archiveFilter}
+            className="mt-1 block w-full min-w-[11rem] rounded-xl border border-[color:var(--border-soft)] bg-white px-2 py-2 text-sm md:w-auto"
+          >
+            <option value="">Active (default)</option>
+            <option value="archived">Archived</option>
+            <option value="all">All orders</option>
+          </select>
+        </label>
         <button
           type="submit"
           className="rounded-xl bg-[color:var(--brand-burgundy)] px-5 py-2.5 text-sm font-semibold text-[color:var(--card-cream)] hover:brightness-110"
@@ -138,6 +163,7 @@ export default async function AdminOrdersPage({
           <thead>
             <tr className="border-b border-[color:var(--border-soft)] bg-[color:var(--card-beige)] text-[10px] font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
               <th className="px-3 py-2">Public ID</th>
+              <th className="px-3 py-2">Archived</th>
               <th className="px-3 py-2">Customer</th>
               <th className="px-3 py-2">Phone</th>
               <th className="px-3 py-2">Order</th>
@@ -154,7 +180,7 @@ export default async function AdminOrdersPage({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-3 py-8 text-center text-[color:var(--muted-text)]">
+                <td colSpan={13} className="px-3 py-8 text-center text-[color:var(--muted-text)]">
                   No orders match these filters.
                 </td>
               </tr>
@@ -168,6 +194,15 @@ export default async function AdminOrdersPage({
                     >
                       {o.publicId}
                     </Link>
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {o.archivedAt ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-950">
+                        Yes
+                      </span>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className="px-3 py-2">{o.customerName}</td>
                   <td className="px-3 py-2 font-mono text-xs">{o.customerPhone}</td>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { CategoryEditForm } from "@/components/admin/categories/category-forms";
+import { CategoryEditForm, CategoryLifecycleSection } from "@/components/admin/categories/category-forms";
 import { getCategoryForAdmin } from "@/lib/admin/data/catalog-queries";
 
 export default async function AdminEditCategoryPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,6 +24,7 @@ export default async function AdminEditCategoryPage({ params }: { params: Promis
         </Link>
       </div>
       <CategoryEditForm category={category} />
+      <CategoryLifecycleSection categoryId={category.id} slug={category.slug} />
     </div>
   );
 }

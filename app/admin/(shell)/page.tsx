@@ -8,6 +8,7 @@ function money(n: number) {
 
 export default async function AdminDashboardPage() {
   const data = await getAdminDashboardSnapshot();
+  const p = data.profitBrief;
 
   return (
     <div className="space-y-8">
@@ -33,6 +34,7 @@ export default async function AdminDashboardPage() {
           <p className="mt-2 text-3xl font-bold tabular-nums text-[color:var(--accent-cocoa)]">
             {money(data.monthDessertRevenue)} OMR
           </p>
+          <p className="mt-1 text-[11px] text-[color:var(--muted-text)]">Cancelled orders excluded.</p>
         </div>
         <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
           <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
@@ -42,8 +44,49 @@ export default async function AdminDashboardPage() {
             {money(data.monthTotalRevenue)} OMR
           </p>
           <p className="mt-1 text-[11px] text-[color:var(--muted-text)]">
-            Sum of stored order totals (includes delivery fee when set).
+            Sum of stored order totals (includes delivery fee when set). Cancelled orders excluded.
           </p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+          Month snapshot ({p.monthLabel} UTC)
+        </h2>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <MiniStat title="Expenses · void excluded" value={`${money(p.expensesTotal)} OMR`} />
+          <MiniStat title="Est. net profit" value={`${money(p.estimatedNetProfit)} OMR`} />
+          <MiniStat title="Unpaid orders" value={String(p.unpaidCount)} />
+        </div>
+        <p className="mt-2 text-[11px] text-[color:var(--muted-text)]">
+          Net profit ≈ revenue (excl. cancelled) minus estimated COGS ({money(p.estimatedCogs)} OMR) minus expenses recorded
+          for the month by <span className="font-medium">expenseDate</span>. See the profit report for full tables.
+          {p.suspiciousZeroCost ? (
+            <>
+              {" "}
+              <span className="text-[color:var(--brand-burgundy-soft)]">Some line items still show zero unit cost.</span>
+            </>
+          ) : null}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold">
+          <Link
+            href="/admin/reports/profit"
+            className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+          >
+            Profit report
+          </Link>
+          <Link
+            href="/admin/expenses"
+            className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+          >
+            Expenses
+          </Link>
+          <Link
+            href="/admin/offers"
+            className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+          >
+            Offers
+          </Link>
         </div>
       </section>
 
@@ -62,6 +105,7 @@ export default async function AdminDashboardPage() {
               <p className="text-xl font-bold tabular-nums">{data.deliveryMonth}</p>
             </div>
           </div>
+          <p className="mt-2 text-[11px] text-[color:var(--muted-text)]">Cancelled orders excluded from counts.</p>
         </div>
         <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
           <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
@@ -127,6 +171,15 @@ function StatCard({ title, value }: { title: string; value: string }) {
     <div className="rounded-2xl border border-[color:var(--border-soft)] bg-white/80 p-4 shadow-sm">
       <p className="text-[10px] font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">{title}</p>
       <p className="mt-2 text-3xl font-bold tabular-nums text-[color:var(--accent-cocoa)]">{value}</p>
+    </div>
+  );
+}
+
+function MiniStat({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-[color:var(--border-soft)] bg-white/80 px-3 py-2 shadow-sm">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[color:var(--muted-text)]">{title}</p>
+      <p className="mt-1 text-xl font-bold tabular-nums text-[color:var(--accent-cocoa)]">{value}</p>
     </div>
   );
 }
