@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Prisma } from "@prisma/client";
+import { Prisma, ProductStatus } from "@prisma/client";
 import type { z } from "zod";
 
 import { requireAdmin } from "@/lib/auth/admin-session";
@@ -13,13 +13,15 @@ import {
 } from "@/lib/admin/validation/catalog";
 import { prisma } from "@/lib/db/prisma";
 
+import type { AdminFormState } from "@/lib/admin/admin-form-state";
+
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 export type CreateProductResult =
   | { ok: true; productId: string }
   | { ok: false; error: string };
 
-export type ProductFormState = { error?: string };
+export type ProductFormState = AdminFormState;
 
 function friendlyPrismaError(e: unknown): string {
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -274,6 +276,100 @@ export async function deactivateProductSizeAction(formData: FormData): Promise<A
   }
 }
 
+export async function deleteProductSizeAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  const productId = String(formData.get("productId") ?? "");
+  if (!id || !productId) return { ok: false, error: "Missing size." };
+  if (!formData.has("confirmDelete")) {
+    return {
+      ok: false,
+      error: "Check the confirmation box before deleting permanently.",
+    };
+  }
+  try {
+    const usage = await prisma.orderItem.count({ where: { productSizeId: id } });
+    if (usage > 0) {
+      return {
+        ok: false,
+        error: "This size has order history and cannot be deleted. Deactivate it instead.",
+      };
+    }
+    await prisma.productSize.delete({ where: { id } });
+    revalidateProductPaths(productId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: friendlyPrismaError(e) };
+  }
+}
+
+export async function hideProductAction(formData: FormData): Promise<ActionResult> {
+  return setProductLifecycleStatus(formData, ProductStatus.HIDDEN);
+}
+
+export async function soldOutProductAction(formData: FormData): Promise<ActionResult> {
+  return setProductLifecycleStatus(formData, ProductStatus.SOLD_OUT);
+}
+
+export async function activateProductAction(formData: FormData): Promise<ActionResult> {
+  return setProductLifecycleStatus(formData, ProductStatus.ACTIVE);
+}
+
+async function setProductLifecycleStatus(
+  formData: FormData,
+  status: ProductStatus,
+): Promise<ActionResult> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Missing product." };
+  try {
+    const exists = await prisma.product.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) return { ok: false, error: "Product not found." };
+    await prisma.product.update({ where: { id }, data: { status } });
+    revalidateProductPaths(id);
+    revalidatePath("/admin/categories");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: friendlyPrismaError(e) };
+  }
+}
+
+export async function deleteProductAction(formData: FormData): Promise<ActionResult> {
+  await requireAdmin();
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Missing product." };
+  const confirmSlug = String(formData.get("confirmSlug") ?? "").trim().toLowerCase();
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id },
+      select: { slug: true },
+    });
+    if (!product) return { ok: false, error: "Product not found." };
+    if (confirmSlug !== product.slug.toLowerCase()) {
+      return {
+        ok: false,
+        error: "Slug confirmation must match exactly (lowercase).",
+      };
+    }
+    const orders = await prisma.orderItem.count({ where: { productId: id } });
+    if (orders > 0) {
+      return {
+        ok: false,
+        error:
+          "This product has order history and cannot be deleted. Hide it instead.",
+      };
+    }
+    await prisma.product.delete({ where: { id } });
+    revalidatePath("/admin/products");
+    revalidatePath("/admin");
+    revalidatePath(`/admin/products/${id}`);
+    revalidatePath("/admin/categories");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: friendlyPrismaError(e) };
+  }
+}
+
 export async function createProductImageAction(formData: FormData): Promise<ActionResult> {
   await requireAdmin();
   const productId = String(formData.get("productId") ?? "");
@@ -359,6 +455,10 @@ function redirectToProduct(productId: string): never {
   redirect(`/admin/products/${productId}`);
 }
 
+function redirectProductsList(): never {
+  redirect("/admin/products");
+}
+
 export async function createProductFormAction(
   _prev: ProductFormState,
   formData: FormData,
@@ -428,6 +528,65 @@ export async function deactivateProductSizeFormAction(
     return { error: "Missing product." };
   }
   redirectToProduct(productId);
+}
+
+export async function deleteProductSizeFormAction(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  const r = await deleteProductSizeAction(formData);
+  const productId = String(formData.get("productId") ?? "");
+  if (!r.ok) {
+    return { error: r.error };
+  }
+  if (!productId) {
+    return { error: "Missing product." };
+  }
+  redirectToProduct(productId);
+}
+
+export async function hideProductFormAction(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  const r = await hideProductAction(formData);
+  const id = String(formData.get("id") ?? "");
+  if (!r.ok) return { error: r.error };
+  if (!id) return { error: "Missing product." };
+  redirectToProduct(id);
+}
+
+export async function soldOutProductFormAction(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  const r = await soldOutProductAction(formData);
+  const id = String(formData.get("id") ?? "");
+  if (!r.ok) return { error: r.error };
+  if (!id) return { error: "Missing product." };
+  redirectToProduct(id);
+}
+
+export async function activateProductFormAction(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  const r = await activateProductAction(formData);
+  const id = String(formData.get("id") ?? "");
+  if (!r.ok) return { error: r.error };
+  if (!id) return { error: "Missing product." };
+  redirectToProduct(id);
+}
+
+export async function deleteProductFormAction(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  const r = await deleteProductAction(formData);
+  if (!r.ok) {
+    return { error: r.error };
+  }
+  redirectProductsList();
 }
 
 export async function createProductImageFormAction(

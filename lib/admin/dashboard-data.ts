@@ -2,6 +2,7 @@ import "server-only";
 
 import { FulfillmentMethod, OrderStatus, Prisma } from "@prisma/client";
 
+import { getMonthProfitBriefUtc } from "@/lib/admin/data/profit-queries";
 import { prisma } from "@/lib/db/prisma";
 
 export function utcTodayRange(): { start: Date; end: Date } {
@@ -34,6 +35,10 @@ const pendingWorkflow: OrderStatus[] = [
 export async function getAdminDashboardSnapshot() {
   const { start: dayStart, end: dayEnd } = utcTodayRange();
   const { start: monthStart, end: monthEnd } = utcMonthRange();
+  const monthOrderWhere = {
+    createdAt: { gte: monthStart, lte: monthEnd },
+    orderStatus: { not: OrderStatus.CANCELLED } as const,
+  };
 
   const [
     ordersToday,
@@ -46,32 +51,36 @@ export async function getAdminDashboardSnapshot() {
     deliveryMonth,
     bestGroup,
     recentOrders,
+    profitBrief,
   ] = await Promise.all([
     prisma.order.count({
-      where: { createdAt: { gte: dayStart, lte: dayEnd } },
+      where: {
+        createdAt: { gte: dayStart, lte: dayEnd },
+        archivedAt: null,
+      },
     }),
     prisma.order.count({
-      where: { orderStatus: { in: pendingWorkflow } },
+      where: { orderStatus: { in: pendingWorkflow }, archivedAt: null },
     }),
     prisma.order.count({ where: { orderStatus: OrderStatus.DELIVERED } }),
     prisma.order.count({ where: { orderStatus: OrderStatus.CANCELLED } }),
     prisma.order.aggregate({
-      where: { createdAt: { gte: monthStart, lte: monthEnd } },
+      where: monthOrderWhere,
       _sum: { dessertSubtotalOmr: true },
     }),
     prisma.order.aggregate({
-      where: { createdAt: { gte: monthStart, lte: monthEnd } },
+      where: monthOrderWhere,
       _sum: { totalOmr: true },
     }),
     prisma.order.count({
       where: {
-        createdAt: { gte: monthStart, lte: monthEnd },
+        ...monthOrderWhere,
         fulfillmentMethod: FulfillmentMethod.PICKUP,
       },
     }),
     prisma.order.count({
       where: {
-        createdAt: { gte: monthStart, lte: monthEnd },
+        ...monthOrderWhere,
         fulfillmentMethod: FulfillmentMethod.DELIVERY,
       },
     }),
@@ -84,6 +93,7 @@ export async function getAdminDashboardSnapshot() {
     }),
     prisma.order.findMany({
       take: 5,
+      where: { archivedAt: null },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -96,6 +106,7 @@ export async function getAdminDashboardSnapshot() {
         createdAt: true,
       },
     }),
+    getMonthProfitBriefUtc(),
   ]);
 
   let bestSeller: { label: string; units: number } | null = null;
@@ -124,6 +135,7 @@ export async function getAdminDashboardSnapshot() {
     deliveryMonth,
     bestSeller,
     recentOrders,
+    profitBrief,
   };
 }
 
@@ -131,6 +143,8 @@ export type OrderListFilters = {
   orderStatus?: OrderStatus;
   fulfillmentMethod?: FulfillmentMethod;
   q?: string;
+  /** Active = non-archived (default). Archived-only or all lists. */
+  archive?: "active" | "archived" | "all";
   page: number;
   pageSize: number;
 };
@@ -142,6 +156,12 @@ export async function getAdminOrdersList(filters: OrderListFilters) {
   }
   if (filters.fulfillmentMethod) {
     where.fulfillmentMethod = filters.fulfillmentMethod;
+  }
+  const arc = filters.archive ?? "active";
+  if (arc === "archived") {
+    where.archivedAt = { not: null };
+  } else if (arc === "active") {
+    where.archivedAt = null;
   }
   const rawQ = filters.q?.trim();
   if (rawQ) {
@@ -175,6 +195,7 @@ export async function getAdminOrdersList(filters: OrderListFilters) {
         deliveryFeeOmr: true,
         totalOmr: true,
         createdAt: true,
+        archivedAt: true,
       },
     }),
   ]);
