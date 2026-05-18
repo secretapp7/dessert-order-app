@@ -2,6 +2,7 @@ import "server-only";
 
 import { ExpenseCategory, Prisma } from "@prisma/client";
 
+import { expenseAdminRecordSelect, type ExpenseAdminRecord } from "@/lib/admin/expense-admin-record";
 import { prisma } from "@/lib/db/prisma";
 
 export type ExpenseListFilters = {
@@ -49,7 +50,11 @@ export async function getExpensesForAdmin(filters: ExpenseListFilters) {
   }
 
   const [rows, totals] = await Promise.all([
-    prisma.expense.findMany({ where, orderBy }),
+    prisma.expense.findMany({
+      where,
+      orderBy,
+      select: expenseAdminRecordSelect,
+    }),
     prisma.expense.aggregate({
       where,
       _sum: { amountOmr: true },
@@ -62,6 +67,9 @@ export async function getExpensesForAdmin(filters: ExpenseListFilters) {
   return { rows, filteredTotalAmount, filteredRowCount: totals._count };
 }
 
-export async function getExpenseForAdmin(id: string) {
-  return prisma.expense.findUnique({ where: { id } });
+export async function getExpenseForAdmin(id: string): Promise<ExpenseAdminRecord | null> {
+  return prisma.expense.findUnique({
+    where: { id },
+    select: expenseAdminRecordSelect,
+  });
 }
