@@ -18,6 +18,8 @@ import type { GpsLike } from "@/lib/orders/location-rules";
 import { Prisma } from "@prisma/client";
 
 import type { CreateOrderPayload } from "./order-validation";
+import { assertDateCanAcceptOrder } from "@/lib/availability/availability-service";
+import { OrderAvailabilityBlockedError } from "@/lib/availability/order-availability-error";
 
 function prismaFulfillment(form: FulfillmentMethod): "PICKUP" | "DELIVERY" {
   return form === FULFILLMENT.PICKUP ? "PICKUP" : "DELIVERY";
@@ -133,6 +135,11 @@ export async function persistOrder(input: CreateOrderPayload): Promise<{
   const staticSize = staticProduct?.sizes.find((s) => s.id === input.productSizeId);
   if (!staticProduct || !staticSize) {
     throw new Error("STATIC_PRODUCT_NOT_FOUND");
+  }
+
+  const gate = await assertDateCanAcceptOrder(input.dateNeeded, input.quantity);
+  if (!gate.ok) {
+    throw new OrderAvailabilityBlockedError(gate.messageEn, gate.messageAr);
   }
 
   const dessertSubtotalOmrNum = staticSize.priceOmr * input.quantity;
