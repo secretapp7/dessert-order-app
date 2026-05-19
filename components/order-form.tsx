@@ -9,7 +9,7 @@ import { ProductVisual } from "@/components/product-visual";
 import { formatLocaleQuantity } from "@/components/review-format";
 import { brand } from "@/config/brand";
 import { FULFILLMENT, type FulfillmentMethod } from "@/config/fulfillment";
-import { products } from "@/data/products";
+import type { StorefrontProduct } from "@/lib/storefront/types";
 import type { AppLanguage } from "@/config/translations";
 import { translations } from "@/config/translations";
 import { buildWhatsappOrderLines, joinWhatsappMessage } from "@/lib/orders/build-whatsapp-order-message";
@@ -46,8 +46,7 @@ type OrderFormState = {
   notes: string;
 };
 
-const initialProduct = products[0];
-const initialSize = initialProduct.sizes[0].id;
+const FALLBACK_SIZE_ID = "";
 
 const labelClass = "block text-[11px] font-semibold text-[color:var(--muted-text)]";
 const inputStyles =
@@ -137,26 +136,39 @@ type OrderFormProps = {
   language: AppLanguage;
   initialProductId?: string;
   initialSizeId?: string;
+  orderableProducts: StorefrontProduct[];
 };
 
-export function OrderForm({ language, initialProductId, initialSizeId }: OrderFormProps) {
+export function OrderForm({
+  language,
+  initialProductId,
+  initialSizeId,
+  orderableProducts,
+}: OrderFormProps) {
   const t = translations[language];
   const biz = translations[language].businessNotes;
   const reduced = useReducedMotion() ?? false;
   const tapScale = scaleTapWhile(reduced);
 
-  const initialSelectedProduct =
-    products.find((product) => product.id === initialProductId) ?? initialProduct;
+  const defaultProduct = orderableProducts[0];
+  const urlRequestedProduct =
+    initialProductId != null
+      ? orderableProducts.find((product) => product.id === initialProductId)
+      : undefined;
+  const initialUnavailableFromUrl =
+    Boolean(initialProductId?.trim()) && urlRequestedProduct == null;
+
+  const initialSelectedProduct = urlRequestedProduct ?? defaultProduct;
 
   const initialSizeResolved =
-    initialSelectedProduct.sizes.find((s) => s.id === initialSizeId)?.id ??
-    initialSelectedProduct.sizes[0]?.id ??
-    initialSize;
+    initialSelectedProduct?.sizes.find((s) => s.id === initialSizeId)?.id ??
+    initialSelectedProduct?.sizes[0]?.id ??
+    FALLBACK_SIZE_ID;
 
   const [form, setForm] = useState<OrderFormState>({
     customerName: "",
     phoneNumber: "",
-    productId: initialSelectedProduct.id,
+    productId: initialSelectedProduct?.id ?? "",
     sizeId: initialSizeResolved,
     quantity: 1,
     dateNeeded: "",
@@ -182,11 +194,13 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
   >(null);
 
   const selectedProduct =
-    products.find((product) => product.id === form.productId) ?? initialProduct;
+    orderableProducts.find((product) => product.id === form.productId) ??
+    defaultProduct;
 
   const availableSizes = selectedProduct.sizes;
   const selectedSize = availableSizes.find((size) => size.id === form.sizeId) ?? availableSizes[0];
-  const estimatedTotal = selectedSize.priceOmr * form.quantity;
+  const estimatedTotal = (selectedSize?.priceOmr ?? 0) * form.quantity;
+  const catalogEmpty = orderableProducts.length === 0;
 
   const showLocationAddedInSummary =
     form.fulfillmentMethod === FULFILLMENT.DELIVERY &&
@@ -199,7 +213,7 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
   const validationErrors: OrderFormValidation = (() => {
     const errors: OrderFormValidation = {};
 
-    const productOk = Boolean(products.find((p) => p.id === form.productId));
+    const productOk = Boolean(orderableProducts.find((p) => p.id === form.productId));
     if (!productOk) errors.productId = t.validation.productRequired;
 
     const sizeOk = Boolean(selectedProduct.sizes.some((s) => s.id === form.sizeId));
@@ -342,7 +356,7 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
   }
 
   function onProductChange(productId: string) {
-    const product = products.find((item) => item.id === productId) ?? initialProduct;
+    const product = orderableProducts.find((item) => item.id === productId) ?? defaultProduct;
     setForm((previous) => ({
       ...previous,
       productId: product.id,
@@ -442,6 +456,23 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
     window.open(whatsappHref, "_blank", "noopener,noreferrer");
     setPersistFailed(false);
     setPersistUserMessage(null);
+  }
+
+  if (catalogEmpty) {
+    return (
+      <motion.div
+        className="rounded-2xl border border-dashed border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-4 py-8 text-center"
+        initial={reduced ? false : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <p className="text-[14px] font-semibold text-[color:var(--foreground)]">{t.form.productUnavailable}</p>
+        <p className="mt-2 text-[12px] text-[color:var(--muted-text)]">{t.form.chooseAnotherProduct}</p>
+      </motion.div>
+    );
+  }
+
+  if (!selectedProduct || !selectedSize) {
+    return null;
   }
 
   async function onCopyMessage() {
@@ -593,6 +624,14 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
         </MotionSection>
 
         <MotionSection title={t.form.sectionDessert} reduced={reduced}>
+          {initialUnavailableFromUrl ? (
+            <p
+              role="status"
+              className="mb-2 rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] px-3 py-2 text-[11px] font-medium text-[color:var(--brand-burgundy-soft)]"
+            >
+              {t.form.productUnavailable} {t.form.chooseAnotherProduct}
+            </p>
+          ) : null}
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             <label className={labelClass}>
               {t.form.dessert}
@@ -602,7 +641,7 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
                 onChange={(event) => onProductChange(event.target.value)}
                 required
               >
-                {products.map((product) => (
+                {orderableProducts.map((product) => (
                   <option key={product.id} value={product.id}>
                     {product.name[language]}
                   </option>

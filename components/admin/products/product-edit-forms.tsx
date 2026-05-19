@@ -3,6 +3,7 @@
 import { ProductImageType, ProductStatus } from "@prisma/client";
 
 import { AdminActionForm } from "@/components/admin/action-form";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import {
   createProductImageFormAction,
   createProductSizeFormAction,
@@ -341,16 +342,19 @@ export function ProductSizesSection({ productId, sizes }: { productId: string; s
 
 export function ProductImagesSection({
   productId,
+  productSlug,
   images,
 }: {
   productId: string;
+  productSlug: string;
   images: SerializedImage[];
 }) {
   return (
     <div className="space-y-4">
       <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">Images</h2>
       <p className="text-[11px] text-[color:var(--muted-text)]">
-        Use public URL paths (e.g. <code className="font-mono">/images/products/…</code>). Uploads can be added later.
+        Upload from your PC when storage is configured, or paste a public path like{" "}
+        <code className="font-mono">/images/products/…</code> or an https URL.
       </p>
       <div className="space-y-3">
         {images.map((im) => (
@@ -411,10 +415,15 @@ export function ProductImagesSection({
         <p className="text-[10px] font-bold uppercase text-[color:var(--brand-gold-muted)]">Add image</p>
         <AdminActionForm action={createProductImageFormAction} className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           <input type="hidden" name="productId" value={productId} />
-          <label className={lbl}>
-            URL / path
-            <input name="url" required className={field} />
-          </label>
+          <ImageUploadField
+            inputName="url"
+            label="Image URL / path"
+            section="products"
+            entitySlug={productSlug}
+            entityId={productId}
+            required
+            inputClassName={field}
+          />
           <label className={lbl}>
             Type
             <select name="type" defaultValue="GALLERY" className={field}>

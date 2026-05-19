@@ -3,7 +3,7 @@
 import { ExpenseCategory } from "@prisma/client";
 
 import { AdminActionForm } from "@/components/admin/action-form";
-import type { ExpenseAdminRecord } from "@/lib/admin/expense-admin-record";
+import type { ExpenseAdminClientRecord } from "@/lib/admin/expense-admin-record";
 import {
   createExpenseFormAction,
   deleteExpenseFormAction,
@@ -62,8 +62,8 @@ export function ExpenseCreateForm() {
   );
 }
 
-export function ExpenseEditForm({ expense }: { expense: ExpenseAdminRecord }) {
-  const voided = Boolean(expense.voidedAt);
+export function ExpenseEditForm({ expense }: { expense: ExpenseAdminClientRecord }) {
+  const voided = Boolean(expense.voidedAtIso);
   return (
     <div className="space-y-8">
       {!voided ? (
@@ -86,11 +86,11 @@ export function ExpenseEditForm({ expense }: { expense: ExpenseAdminRecord }) {
             </label>
             <label className={lbl}>
               Amount (OMR)
-              <input name="amountOmr" required inputMode="decimal" defaultValue={String(expense.amountOmr)} className={field} />
+              <input name="amountOmr" required inputMode="decimal" defaultValue={expense.amountOmr} className={field} />
             </label>
             <label className={lbl}>
               Expense date (UTC)
-              <input name="expenseDate" type="date" required defaultValue={ymdUtc(expense.expenseDate)} className={field} />
+              <input name="expenseDate" type="date" required defaultValue={expense.expenseDateYmd} className={field} />
             </label>
             <label className={lbl}>
               Notes (optional)

@@ -6,6 +6,7 @@ import {
   updateCapacityOverrideFormAction,
   upsertCapacityOverrideFormAction,
 } from "@/lib/admin/actions/availability-actions";
+import type { CapacityOverrideAdminClientRecord } from "@/lib/admin/availability-admin-record";
 
 const field =
   "mt-1 w-full rounded-lg border border-[color:var(--border-soft)] bg-white px-2 py-1.5 text-sm";
@@ -52,22 +53,11 @@ export function CapacityOverrideCreateForm() {
   );
 }
 
-export function CapacityOverrideEditForm({
-  row,
-}: {
-  row: {
-    id: string;
-    date: Date;
-    maxOrders: number;
-    noteEn: string | null;
-    noteAr: string | null;
-    isActive: boolean;
-  };
-}) {
+export function CapacityOverrideEditForm({ row }: { row: CapacityOverrideAdminClientRecord }) {
   return (
     <div className="space-y-6">
       <p className="font-mono text-xs text-[color:var(--muted-text)]">
-        UTC date: {ymdUtc(row.date)} (edit date by creating a new override for another day)
+        UTC date: {row.dateYmd} (edit date by creating a new override for another day)
       </p>
       <AdminActionForm action={updateCapacityOverrideFormAction} className="max-w-xl space-y-3">
         <input type="hidden" name="id" value={row.id} />

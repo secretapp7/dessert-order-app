@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminActionForm } from "@/components/admin/action-form";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import {
   activateOfferFormAction,
   createOfferFormAction,
@@ -10,6 +11,7 @@ import {
   unfeatureOfferFormAction,
   updateOfferFormAction,
 } from "@/lib/admin/actions/offer-actions";
+import type { OfferAdminClientRecord } from "@/lib/admin/offer-admin-record";
 
 const field =
   "mt-1 w-full rounded-lg border border-[color:var(--border-soft)] bg-white px-2 py-1.5 text-sm";
@@ -18,18 +20,6 @@ const btn =
   "rounded-lg bg-[color:var(--brand-burgundy)] px-3 py-2 text-xs font-semibold text-[color:var(--card-cream)]";
 const btnGhost =
   "rounded-lg border border-[color:var(--border-soft)] px-3 py-2 text-xs font-semibold hover:bg-white";
-
-function utcDatetimeLocal(value: Date | null | undefined) {
-  if (!value) return "";
-  const d = new Date(value);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const y = d.getUTCFullYear();
-  const m = pad(d.getUTCMonth() + 1);
-  const day = pad(d.getUTCDate());
-  const h = pad(d.getUTCHours());
-  const min = pad(d.getUTCMinutes());
-  return `${y}-${m}-${day}T${h}:${min}`;
-}
 
 export function OfferCreateForm() {
   return (
@@ -91,24 +81,7 @@ export function OfferCreateForm() {
   );
 }
 
-export function OfferEditForm({
-  offer,
-}: {
-  offer: {
-    id: string;
-    slug: string;
-    titleEn: string;
-    titleAr: string;
-    descriptionEn: string;
-    descriptionAr: string;
-    priceOmr: unknown;
-    imageUrl: string | null;
-    startsAt: Date | null;
-    endsAt: Date | null;
-    isActive: boolean;
-    featuredOnHome: boolean;
-  };
-}) {
+export function OfferEditForm({ offer }: { offer: OfferAdminClientRecord }) {
   return (
     <>
       <AdminActionForm action={updateOfferFormAction} className="max-w-3xl space-y-3">
@@ -120,7 +93,7 @@ export function OfferEditForm({
           </label>
           <label className={lbl}>
             Price (OMR)
-            <input name="priceOmr" required inputMode="decimal" defaultValue={String(offer.priceOmr)} className={field} />
+            <input name="priceOmr" required inputMode="decimal" defaultValue={offer.priceOmr} className={field} />
           </label>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -141,23 +114,28 @@ export function OfferEditForm({
           Description (AR)
           <textarea name="descriptionAr" required rows={3} defaultValue={offer.descriptionAr} className={field} dir="rtl" />
         </label>
-        <label className={lbl}>
-          Image URL (optional)
-          <input name="imageUrl" defaultValue={offer.imageUrl ?? ""} className={field} />
-        </label>
+        <ImageUploadField
+          inputName="imageUrl"
+          label="Offer image (optional)"
+          defaultValue={offer.imageUrl ?? ""}
+          section="offers"
+          entitySlug={offer.slug}
+          entityId={offer.id}
+          inputClassName={field}
+        />
         <div className="grid gap-2 sm:grid-cols-2">
           <label className={lbl}>
             Starts at (UTC, optional)
             <input
               name="startsAt"
               type="datetime-local"
-              defaultValue={utcDatetimeLocal(offer.startsAt)}
+              defaultValue={offer.startsAtLocal}
               className={field}
             />
           </label>
           <label className={lbl}>
             Ends at (UTC, optional)
-            <input name="endsAt" type="datetime-local" defaultValue={utcDatetimeLocal(offer.endsAt)} className={field} />
+            <input name="endsAt" type="datetime-local" defaultValue={offer.endsAtLocal} className={field} />
           </label>
         </div>
         <label className={`${lbl} flex items-center gap-2`}>

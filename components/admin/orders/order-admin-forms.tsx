@@ -22,7 +22,7 @@ export function OrderAdminForms({
   order: {
     id: string;
     publicId: string;
-    archivedAt: Date | null;
+    archivedAtIso: string | null;
     orderStatus: OrderStatus;
     paymentStatus: PaymentStatus;
     deliveryStatus: DeliveryStatus;
@@ -31,10 +31,10 @@ export function OrderAdminForms({
     notes: string | null;
     adminNote: string | null;
     cancelReason: string | null;
-    deliveryFeeOmr: unknown;
+    deliveryFeeOmr: string | null;
   };
 }) {
-  const isArchived = Boolean(order.archivedAt);
+  const isArchived = Boolean(order.archivedAtIso);
   const isCancelled = order.orderStatus === OrderStatus.CANCELLED;
 
   return (
@@ -144,7 +144,7 @@ export function OrderAdminForms({
               name="deliveryFeeOmr"
               type="text"
               inputMode="decimal"
-              defaultValue={order.deliveryFeeOmr != null ? String(order.deliveryFeeOmr) : ""}
+              defaultValue={order.deliveryFeeOmr ?? ""}
               className="mt-1 w-40 rounded-xl border border-[color:var(--border-soft)] bg-white px-2 py-2 text-sm tabular-nums"
             />
             <span className="mt-1 block text-[10px] text-[color:var(--muted-text)]">Leave empty for none</span>

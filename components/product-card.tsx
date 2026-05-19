@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import type { Product } from "@/data/products";
+import type { StorefrontProductStatus } from "@/lib/storefront/types";
 import { brand } from "@/config/brand";
 import type { AppLanguage } from "@/config/translations";
 import { translations } from "@/config/translations";
@@ -18,13 +19,14 @@ import {
 } from "@/lib/motion";
 
 type ProductCardProps = {
-  product: Product;
+  product: Product & { status?: StorefrontProductStatus };
   language: AppLanguage;
 };
 
 export function ProductCard({ product, language }: ProductCardProps) {
   const t = translations[language];
   const reduced = useReducedMotion() ?? false;
+  const soldOut = product.status === "SOLD_OUT";
   const startingPrice = Math.min(...product.sizes.map((size) => size.priceOmr));
   const pid = product.id as ReviewProductId;
   const avg = getAverageRating(pid);
@@ -62,9 +64,13 @@ export function ProductCard({ product, language }: ProductCardProps) {
             initial={reduced ? false : { opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: reduced ? 0.12 : 0.24, ease: easePremium }}
-            className="absolute start-2.5 top-2.5 z-[3] inline-flex rounded-full border-2 border-[color:var(--brand-burgundy)] bg-[color:var(--brand-gold-soft)]/92 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[color:var(--brand-burgundy)] shadow-sm ring-1 ring-[color:var(--border-soft)] backdrop-blur-sm"
+            className={`absolute start-2.5 top-2.5 z-[3] inline-flex rounded-full border-2 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wide shadow-sm ring-1 ring-[color:var(--border-soft)] backdrop-blur-sm ${
+              soldOut
+                ? "border-white/40 bg-black/55 text-white"
+                : "border-[color:var(--brand-burgundy)] bg-[color:var(--brand-gold-soft)]/92 text-[color:var(--brand-burgundy)]"
+            }`}
           >
-            {product.badge[language]}
+            {soldOut ? t.productCard.soldOut : product.badge[language]}
           </motion.span>
           {count > 0 ? (
             <motion.div
@@ -101,8 +107,14 @@ export function ProductCard({ product, language }: ProductCardProps) {
                 {startingPrice.toFixed(2)} {brand.currency}
               </span>
             </p>
-            <span className="inline-flex min-h-9 shrink-0 items-center rounded-full border border-[color:var(--brand-gold-muted)]/40 bg-[color:var(--brand-burgundy)] px-4 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--card-cream)] shadow-sm supports-[hover:hover]:group-hover:brightness-110">
-              {t.productCard.view}
+            <span
+              className={`inline-flex min-h-9 shrink-0 items-center rounded-full border px-4 text-[10px] font-semibold uppercase tracking-wide shadow-sm ${
+                soldOut
+                  ? "border-[color:var(--border-soft)] bg-[color:var(--card-beige)] text-[color:var(--muted-text)]"
+                  : "border-[color:var(--brand-gold-muted)]/40 bg-[color:var(--brand-burgundy)] text-[color:var(--card-cream)] supports-[hover:hover]:group-hover:brightness-110"
+              }`}
+            >
+              {soldOut ? t.productCard.soldOut : t.productCard.view}
             </span>
           </div>
         </div>

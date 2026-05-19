@@ -6,6 +6,7 @@ import {
   deactivateClosedDateFormAction,
   updateClosedDateFormAction,
 } from "@/lib/admin/actions/availability-actions";
+import type { ClosedDateAdminClientRecord } from "@/lib/admin/availability-admin-record";
 
 const field =
   "mt-1 w-full rounded-lg border border-[color:var(--border-soft)] bg-white px-2 py-1.5 text-sm";
@@ -54,18 +55,7 @@ export function ClosedDateCreateForm() {
   );
 }
 
-export function ClosedDateEditForm({
-  row,
-}: {
-  row: {
-    id: string;
-    startsAt: Date;
-    endsAt: Date;
-    reasonEn: string | null;
-    reasonAr: string | null;
-    isActive: boolean;
-  };
-}) {
+export function ClosedDateEditForm({ row }: { row: ClosedDateAdminClientRecord }) {
   return (
     <div className="space-y-6">
       <AdminActionForm action={updateClosedDateFormAction} className="max-w-xl space-y-3">
@@ -76,7 +66,7 @@ export function ClosedDateEditForm({
             name="startsAt"
             type="datetime-local"
             required
-            defaultValue={utcDatetimeLocal(row.startsAt)}
+            defaultValue={row.startsAtLocal}
             className={field}
           />
         </label>
@@ -86,7 +76,7 @@ export function ClosedDateEditForm({
             name="endsAt"
             type="datetime-local"
             required
-            defaultValue={utcDatetimeLocal(row.endsAt)}
+            defaultValue={row.endsAtLocal}
             className={field}
           />
         </label>
