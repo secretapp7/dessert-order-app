@@ -299,6 +299,48 @@ model Expense {
   @@map("expenses")
 }
 
+/// Key/value pairs for production capacity & notice rules (see seed defaults).
+model AvailabilitySetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("availability_settings")
+}
+
+/// Blocks ordering for every calendar day overlapping [startsAt, endsAt] (inclusive overlap semantics).
+model ClosedDate {
+  id        String   @id @default(cuid())
+  startsAt  DateTime
+  endsAt    DateTime
+  reasonEn  String?
+  reasonAr  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, startsAt])
+  @@index([isActive, endsAt])
+  @@map("closed_dates")
+}
+
+/// Per-calendar-day max orders (UTC date). Active overrides beat global default limit.
+model DailyCapacityOverride {
+  id        String   @id @default(cuid())
+  date      DateTime @unique @db.Date
+  maxOrders Int
+  noteEn    String?
+  noteAr    String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, date])
+  @@map("daily_capacity_overrides")
+}
+
 model Review {
   id               String       @id @default(cuid())
   productId        String?

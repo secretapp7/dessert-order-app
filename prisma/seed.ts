@@ -6,6 +6,7 @@ import { PrismaClient, Prisma, ProductImageType } from "@prisma/client";
 import { brand } from "../config/brand";
 import { translations } from "../config/translations";
 import { products as staticProducts } from "../data/products";
+import { AVAILABILITY_KEYS } from "../lib/availability/availability-keys";
 
 /** Loads `.env.local` then `.env` so `npm run prisma:seed` finds DATABASE_URL like Next.js. */
 function mergeEnvFile(relativePath: string) {
@@ -245,7 +246,17 @@ async function main() {
     });
   }
 
-  console.log("Seed finished: categories, products, sizes, images, business_settings.");
+  await prisma.availabilitySetting.createMany({
+    data: [
+      { key: AVAILABILITY_KEYS.minimumNoticeDays, value: "2" },
+      { key: AVAILABILITY_KEYS.defaultDailyOrderLimit, value: "5" },
+      { key: AVAILABILITY_KEYS.largeOrderNoticeDays, value: "4" },
+      { key: AVAILABILITY_KEYS.largeOrderQuantityThreshold, value: "5" },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log("Seed finished: categories, products, sizes, images, business_settings, availability defaults.");
 }
 
 main()
