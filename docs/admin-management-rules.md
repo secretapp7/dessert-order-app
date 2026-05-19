@@ -13,6 +13,7 @@ This document records **safe defaults** for catalog and operations data. It comp
 | **Offers** | Full fields; activate/deactivate and feature shortcuts | **Delete** allowed today (slug + checklist); **Deactivate**/`isActive`/dates preferred for campaigns | Offers are **not** linked to `OrderItem`/`Order` rows yet — if they become order-linked later, swap delete for **disable/archive** snapshots. |
 | **Expenses** | Category, title, amount, UTC date (`expenseDate`), notes | Prefer **Void** (`voidedAt`, optional reason) — excluded from totals; **Delete** for mistaken/test rows with title confirmation + acknowledgment | Negative amounts rejected. |
 | **Profit report** | N/A read-only aggregates | N/A | Admin-only math from orders + expense lines (`expenseDate`, void excluded). Archived orders remain in totals unless cancelled. |
+| **Availability / capacity** | Global settings; closed datetime ranges; per-day overrides | Prefer **Deactivate** on overrides / closed rows vs deleting history | Capacity counts **non-cancelled** orders by matching **`dateNeeded`** UTC day; archive **does not** free a slot; WhatsApp opens only after successful persist + availability gate. |
 
 **Hard deletes that are comparatively safe**: empty categories; product/size rows never referenced by `order_items`; product images (media records only); offers while unreferenced by orders.
 
@@ -47,6 +48,14 @@ This document records **safe defaults** for catalog and operations data. It comp
 - **Void** hides an entry from aggregates while retaining an audit stub (`voidedAt`, `voidReason`).
 - Admin profit views combine **stored order totals (`totalOmr`, delivery fee when persisted)** minus **estimated COGS from line items**, minus non-void expenses in the UTC month.
 - Older orders might lack populated `estimatedUnitCostOmr` / `estimatedLineProfitOmr` — surfaced as on-page disclaimers rather than guesses.
+
+## Availability & capacity
+
+- **Minimum notice** and **default daily limit** live in `availability_settings` (`minimum_notice_days`, `default_daily_order_limit`, etc.). Missing rows fall back to code defaults until seeded.
+- **Closed periods** block ordering for every UTC day overlapping `[startsAt, endsAt]` while `isActive`.
+- **Overrides** set `maxOrders` for a single UTC calendar date; `maxOrders <= 0` is treated as **unlimited** for that day unless closed.
+- **Regular orders** must satisfy minimum calendar-day advance from **today UTC**; **large orders** (quantity ≥ threshold) must satisfy the larger notice window or submission is rejected server-side with bilingual copy.
+- **Cancelled orders never consume capacity**; archived orders **still consume** capacity because fulfillment reality unchanged.
 
 ### Future sections
 

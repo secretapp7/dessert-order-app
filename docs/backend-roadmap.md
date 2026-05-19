@@ -2,6 +2,13 @@
 
 ## Current phase
 
+**Phase 5 — Availability & daily capacity (completed)**
+
+- **Models:** `AvailabilitySetting` (key/value notice + limits), `ClosedDate` (admin blackout ranges), `DailyCapacityOverride` (per UTC calendar day max orders).
+- **Service:** `lib/availability/availability-service.ts` — `getAvailabilityForDate`, `assertDateCanAcceptOrder`, `getAvailabilityCalendarRange`; statuses include AVAILABLE, FEW_SLOTS_LEFT, FULLY_BOOKED, CLOSED, TOO_SOON, LARGE_ORDER_NEEDS_MORE_NOTICE; counts exclude **CANCELLED** orders only (archived rows still consume slots).
+- **Customer `/order`:** Debounced server action shows bilingual availability after picking date/qty; submit blocked unless AVAILABLE or FEW_SLOTS_LEFT; persist failures surface localized availability messages without opening WhatsApp.
+- **Admin:** `/admin/availability` hub + closed-period CRUD + capacity overrides + dashboard snapshot (today/tomorrow slots, next fully booked scan, upcoming closures, tomorrow production mix).
+
 **Phase 4B — Admin offers management (completed)**
 
 - **Routes:** `/admin/offers`, `/admin/offers/new`, `/admin/offers/[id]` with real `Offer` CRUD/actions.
@@ -26,7 +33,7 @@
 
 - **Authentication:** bcrypt passwords + JWT session cookie (`jose`).
 - **Routes:** `/admin/login`, `/admin`, `/admin/orders`, `/admin/orders/[id]`.
-- **Nav:** Offers, Expenses, and Profit reports are enabled; Reviews and Settings remain “soon”.
+- **Nav:** Offers, Expenses, Profit reports, and **Availability** are enabled; Reviews and Settings remain “soon”.
 - **Customer storefront** unchanged; WhatsApp-first ordering persists.
 
 **Phase 2 — Persist customer orders before WhatsApp (completed)**
