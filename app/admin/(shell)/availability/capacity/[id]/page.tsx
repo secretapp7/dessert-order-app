@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CapacityOverrideEditForm } from "@/components/admin/availability/capacity-forms";
+import { serializeCapacityOverrideForAdmin } from "@/lib/admin/availability-admin-record";
 import { prisma } from "@/lib/db/prisma";
 
 export default async function AdminCapacityEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const row = await prisma.dailyCapacityOverride.findUnique({ where: { id } });
-  if (!row) notFound();
+  const dbRow = await prisma.dailyCapacityOverride.findUnique({ where: { id } });
+  if (!dbRow) notFound();
+  const row = serializeCapacityOverrideForAdmin(dbRow);
 
   return (
     <div className="space-y-6">

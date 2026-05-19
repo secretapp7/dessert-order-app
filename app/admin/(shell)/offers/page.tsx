@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AdminImageThumb } from "@/components/admin/admin-image-thumb";
 import { getOffersForAdmin, type OfferListFilters } from "@/lib/admin/data/offer-queries";
 
 function money(n: unknown) {
@@ -136,6 +137,7 @@ export default async function AdminOffersPage({
         <table className="w-full min-w-[1080px] text-left text-sm">
           <thead>
             <tr className="border-b border-[color:var(--border-soft)] bg-[color:var(--card-beige)] text-[10px] font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+              <th className="px-3 py-2 w-14">Image</th>
               <th className="px-3 py-2">Title (EN)</th>
               <th className="px-3 py-2">Title (AR)</th>
               <th className="px-3 py-2">Slug</th>
@@ -161,6 +163,9 @@ export default async function AdminOffersPage({
                   key={o.id}
                   className="border-b border-[color:var(--border-soft)]/70 hover:bg-[color:var(--card-cream)]/60"
                 >
+                  <td className="px-3 py-2">
+                    <AdminImageThumb src={o.imageUrl ?? ""} alt={o.titleEn} className="h-10 w-10" />
+                  </td>
                   <td className="px-3 py-2">
                     <Link
                       href={`/admin/offers/${o.id}`}

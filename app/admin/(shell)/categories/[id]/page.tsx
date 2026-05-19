@@ -23,7 +23,18 @@ export default async function AdminEditCategoryPage({ params }: { params: Promis
           Back to list
         </Link>
       </div>
-      <CategoryEditForm category={category} />
+      <CategoryEditForm
+        category={{
+          id: category.id,
+          slug: category.slug,
+          nameEn: category.nameEn,
+          nameAr: category.nameAr,
+          descriptionEn: category.descriptionEn,
+          descriptionAr: category.descriptionAr,
+          sortOrder: category.sortOrder,
+          isActive: category.isActive,
+        }}
+      />
       <CategoryLifecycleSection categoryId={category.id} slug={category.slug} />
     </div>
   );

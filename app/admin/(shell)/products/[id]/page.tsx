@@ -92,7 +92,7 @@ export default async function AdminEditProductPage({ params }: { params: Promise
       </section>
 
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-white/80 p-4 shadow-sm">
-        <ProductImagesSection productId={product.id} images={images} />
+        <ProductImagesSection productId={product.id} productSlug={product.slug} images={images} />
       </section>
     </div>
   );

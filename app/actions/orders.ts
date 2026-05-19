@@ -6,6 +6,7 @@ import {
 } from "@/server/orders/order-validation";
 import { persistOrder } from "@/server/orders/order-service";
 import { OrderAvailabilityBlockedError } from "@/lib/availability/order-availability-error";
+import { OrderCatalogNotAvailableError } from "@/lib/storefront/order-catalog-error";
 
 export type CreateOrderActionSuccess = {
   success: true;
@@ -44,6 +45,13 @@ export async function createOrderAction(
     };
   } catch (error) {
     if (error instanceof OrderAvailabilityBlockedError) {
+      const msg = payload.language === "ar" ? error.messageAr : error.messageEn;
+      return {
+        success: false,
+        errorMessage: msg,
+      };
+    }
+    if (error instanceof OrderCatalogNotAvailableError) {
       const msg = payload.language === "ar" ? error.messageAr : error.messageEn;
       return {
         success: false,

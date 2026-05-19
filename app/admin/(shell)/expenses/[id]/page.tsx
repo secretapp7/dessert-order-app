@@ -15,8 +15,8 @@ export default async function AdminEditExpensePage({ params }: { params: Promise
         <div>
           <h1 className="text-2xl font-bold text-[color:var(--accent-cocoa)]">Edit expense</h1>
           <p className="mt-1 text-xs text-[color:var(--muted-text)]">
-            {expense.category} · {expense.expenseDate.toISOString().slice(0, 10)} UTC
-            {expense.voidedAt ? " · voided (totals exclude this row)" : ""}
+            {expense.category} · {expense.expenseDateYmd} UTC
+            {expense.voidedAtIso ? " · voided (totals exclude this row)" : ""}
           </p>
         </div>
         <Link

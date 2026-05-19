@@ -6,6 +6,7 @@ import { OrderAdminForms } from "@/components/admin/orders/order-admin-forms";
 import { FulfillmentMethod, OrderStatus } from "@prisma/client";
 
 import { getAdminOrderById } from "@/lib/admin/dashboard-data";
+import { decimalToFormString } from "@/lib/admin/admin-serialize";
 import { brand } from "@/config/brand";
 
 function money(n: number) {
@@ -83,7 +84,7 @@ export default async function AdminOrderDetailPage({
         order={{
           id: order.id,
           publicId: order.publicId,
-          archivedAt: order.archivedAt,
+          archivedAtIso: order.archivedAt?.toISOString() ?? null,
           orderStatus: order.orderStatus,
           paymentStatus: order.paymentStatus,
           deliveryStatus: order.deliveryStatus,
@@ -92,7 +93,8 @@ export default async function AdminOrderDetailPage({
           notes: order.notes,
           adminNote: order.adminNote,
           cancelReason: order.cancelReason,
-          deliveryFeeOmr: order.deliveryFeeOmr,
+          deliveryFeeOmr:
+            order.deliveryFeeOmr != null ? decimalToFormString(order.deliveryFeeOmr) : null,
         }}
       />
 

@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ClosedDateEditForm } from "@/components/admin/availability/closed-date-forms";
+import { serializeClosedDateForAdmin } from "@/lib/admin/availability-admin-record";
 import { prisma } from "@/lib/db/prisma";
 
 export default async function AdminClosedDateEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const row = await prisma.closedDate.findUnique({ where: { id } });
-  if (!row) notFound();
+  const dbRow = await prisma.closedDate.findUnique({ where: { id } });
+  if (!dbRow) notFound();
+  const row = serializeClosedDateForAdmin(dbRow);
 
   return (
     <div className="space-y-6">
