@@ -64,9 +64,18 @@ This document records **safe defaults** for catalog and operations data. It comp
 | **Reviews** | **HIDE** status or soft-hide; delete only spam after moderation. |
 | **Settings** | Feature-flag style toggles rather than wiping production config snapshots. |
 
+## Admin images (products, offers, future settings)
+
+- **Stored value:** URL/path string on `ProductImage.url` or `Offer.imageUrl` — same field whether uploaded or pasted manually.
+- **Upload API:** `POST /admin/api/uploads/image` (multipart field `file`, optional `section`, `entitySlug`, `entityId`) requires an admin session. Returns JSON `{ ok, url }` or `{ ok: false, error }` — never stack traces.
+- **Storage:** Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set (`coco-treats/admin/{section}/{year}/…`). If the token is missing, the API returns a clear message to use manual paths; **do not** fake success or write to `/public` at runtime.
+- **Validation:** JPEG, PNG, WebP only; max 5 MB; SVG rejected for product/offer photos.
+- **Storefront:** Public `/`, `/menu`, `/products/[slug]` continue to render whatever URL/path is saved (local `/images/…` or Blob https URL). `next/image` allows `*.public.blob.vercel-storage.com` when Blob URLs are used.
+- **UI:** Reuse `ImageUploadField` in admin forms; keep the manual URL/path input as fallback.
+
 ## UX / engineering rules
 
-- All admin mutations go through **`requireAdmin()`**.
+- All admin mutations go through **`requireAdmin()`** (upload route checks admin session via `getAdminSession()`).
 - Prefer **friendly messages** over raw errors; never return stack traces to the client.
 - **Avoid nested `<form>`** elements; use sibling forms/button groups.
 - Destructive actions need **explicit copy** (“Delete permanently”, “Archive”, “Hide”) plus confirmations where deletes are irreversible.

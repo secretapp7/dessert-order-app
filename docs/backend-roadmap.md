@@ -2,6 +2,15 @@
 
 ## Current phase
 
+**Phase 6 — Public storefront database sync (completed)**
+
+- **Data layer:** `lib/storefront/*` — Prisma-backed queries with safe DTOs (`StorefrontProduct`, `StorefrontOffer`); no admin-only fields on the wire.
+- **Fallback:** If no `ACTIVE`/`SOLD_OUT` rows exist in Postgres, public pages use `data/products.ts` (kept as emergency/reference; not deleted).
+- **Pages:** `/`, `/menu`, `/products/[slug]`, `/order` are server-fetched (`dynamic = force-dynamic`) and pass serialized catalog props to client UI.
+- **Rules:** `HIDDEN` never shown; `SOLD_OUT` visible with labels but not orderable; order `persistOrder` resolves DB product slug + size cuid first, static fallback second; snapshots use DB labels/prices/costs.
+- **Offers:** Home/menu promo blocks prefer `Offer.featuredOnHome` when active and in date range; otherwise static Launch Box copy.
+- **Revalidation:** Product/category/offer admin actions call `revalidateStorefrontPaths()` for `/`, `/menu`, `/order`, and `/products/[slug]` when known.
+
 **Phase 5 — Availability & daily capacity (completed)**
 
 - **Models:** `AvailabilitySetting` (key/value notice + limits), `ClosedDate` (admin blackout ranges), `DailyCapacityOverride` (per UTC calendar day max orders).
@@ -26,8 +35,8 @@
 - **Routes:** `/admin/products`, `/admin/products/new`, `/admin/products/[id]`, `/admin/categories`, `/admin/categories/new`, `/admin/categories/[id]`.
 - **Data:** Lists and forms read/write real `Product`, `ProductSize`, `ProductImage`, and `Category` records via Prisma.
 - **Server actions:** Product/category CRUD gated with `requireAdmin()`, Zod validation, friendly errors, bounded deletes.
-- **Images:** Admin stores URL/path strings — no uploads in this phase.
-- **Public storefront:** Still static (`data/products.ts`, etc.). DB-backed menu sync stays a future phase.
+- **Images:** Admin stores URL/path strings on `ProductImage.url` (public paths or Vercel Blob https URLs). Optional PC upload via `POST /admin/api/uploads/image` when `BLOB_READ_WRITE_TOKEN` is set; manual URL/path remains available.
+- **Public storefront:** Synced in Phase 6 (see above). `data/products.ts` remains as fallback only.
 
 **Phase 3 — Admin login, dashboard shell, order management (completed)**
 
@@ -55,8 +64,11 @@ Set in `.env.local` (local) and deployment env settings:
 | `ADMIN_EMAIL` | Allowed login email (compared case-insensitively). |
 | `ADMIN_PASSWORD_HASH` | bcrypt hash — never plaintext. |
 | `ADMIN_SESSION_SECRET` | JWT signing secret — **≥ 32 chars**. |
+| `BLOB_READ_WRITE_TOKEN` | Optional. Enables admin image uploads to Vercel Blob. Without it, paste `/images/…` or https URLs manually. |
 
 Generation snippets remain unchanged from earlier phases (see archived docs or run `openssl rand -hex 32` / bcrypt helper CLI).
+
+Create a Blob store in the Vercel project (or use the Vercel CLI) and copy the read-write token into `.env.local` for local upload testing.
 
 ---
 
@@ -66,7 +78,7 @@ Generation snippets remain unchanged from earlier phases (see archived docs or r
 2. `npm run dev`
 3. Visit `/admin` → login → Dashboard, Orders, Products, Offers, Expenses.
 4. Open `/admin/reports/profit` after seeding expenses and placing non-cancelled orders to validate aggregates.
-5. Public `/menu` still reads static seeds until storefront sync lands.
+5. Public `/menu` reads Neon catalog when products exist; run `prisma:seed` if the menu is empty.
 
 Logout clears the cookie via `/admin/login` action.
 
