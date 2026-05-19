@@ -1,8 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { getOrderDateAvailabilityAction } from "@/app/actions/order-date-availability";
 import { createOrderAction } from "@/app/actions/orders";
 import { ProductVisual } from "@/components/product-visual";
 import { formatLocaleQuantity } from "@/components/review-format";
@@ -15,6 +16,7 @@ import { buildWhatsappOrderLines, joinWhatsappMessage } from "@/lib/orders/build
 import { ADDRESS_MIN_CHARS } from "@/lib/orders/constants";
 import { hasDeliveryLocationMethod } from "@/lib/orders/location-rules";
 import { isHttpsOrHttpUrl } from "@/lib/orders/http-url";
+import type { AvailabilityDayClientPayload } from "@/lib/availability/public-types";
 import {
   easePremium,
   scaleTapWhile,
@@ -172,6 +174,12 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
   const [copiedMessage, setCopiedMessage] = useState(false);
   const [orderPersistPhase, setOrderPersistPhase] = useState<null | "saving" | "opening">(null);
   const [persistFailed, setPersistFailed] = useState(false);
+  const [persistUserMessage, setPersistUserMessage] = useState<string | null>(null);
+  const [dateAvailability, setDateAvailability] = useState<
+    | null
+    | { loading: true }
+    | { loading: false; data: AvailabilityDayClientPayload | null }
+  >(null);
 
   const selectedProduct =
     products.find((product) => product.id === form.productId) ?? initialProduct;
@@ -248,6 +256,49 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
   })();
 
   const isValid = Object.keys(validationErrors).length === 0;
+
+  const dateLooksValid = /^\d{4}-\d{2}-\d{2}$/.test(form.dateNeeded);
+
+  const availabilityBusy =
+    dateLooksValid && (!dateAvailability || dateAvailability.loading === true);
+
+  const availabilityGatePasses =
+    !dateLooksValid ||
+    (!!dateAvailability &&
+      !dateAvailability.loading &&
+      dateAvailability.data !== null &&
+      (dateAvailability.data.status === "AVAILABLE" ||
+        dateAvailability.data.status === "FEW_SLOTS_LEFT"));
+
+  const availabilityPayload =
+    dateAvailability && dateAvailability.loading === false ? dateAvailability.data : undefined;
+
+  useEffect(() => {
+    if (!dateLooksValid) {
+      void Promise.resolve().then(() => setDateAvailability(null));
+      return;
+    }
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (!cancelled) setDateAvailability({ loading: true });
+    });
+    const handle = window.setTimeout(async () => {
+      const res = await getOrderDateAvailabilityAction({
+        dateNeeded: form.dateNeeded,
+        quantity: form.quantity,
+      });
+      if (cancelled) return;
+      if (!res.ok) {
+        setDateAvailability({ loading: false, data: null });
+        return;
+      }
+      setDateAvailability({ loading: false, data: res.data });
+    }, 380);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [dateLooksValid, form.dateNeeded, form.quantity]);
 
   const dessertName = selectedProduct.name[language];
   const sizeLine = `${selectedSize.label[language]} (${selectedSize.serves[language]})`;
@@ -332,6 +383,7 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
     event.preventDefault();
     setAttemptedSubmit(true);
     setPersistFailed(false);
+    setPersistUserMessage(null);
 
     if (!isValid) {
       return;
@@ -374,15 +426,22 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
 
       setOrderPersistPhase(null);
       setPersistFailed(true);
+      const msg =
+        result.errorMessage === "PERSIST_FAILED" || result.errorMessage === "VALIDATION_FAILED"
+          ? t.orderSave.saveFailed
+          : result.errorMessage;
+      setPersistUserMessage(msg);
     } catch {
       setOrderPersistPhase(null);
       setPersistFailed(true);
+      setPersistUserMessage(t.orderSave.saveFailed);
     }
   }
 
   function openWhatsappWithoutSaving() {
     window.open(whatsappHref, "_blank", "noopener,noreferrer");
     setPersistFailed(false);
+    setPersistUserMessage(null);
   }
 
   async function onCopyMessage() {
@@ -591,6 +650,30 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
                 required
               />
               <FieldError show={attemptedSubmit} message={validationErrors.dateNeeded} reduced={reduced} />
+              {dateLooksValid ? (
+                <div
+                  role="status"
+                  className={`mt-2 rounded-xl border px-2.5 py-2 text-[10px] leading-snug ${
+                    availabilityBusy
+                      ? "border-[color:var(--border-soft)] bg-[color:var(--card-cream)] text-[color:var(--muted-text)]"
+                      : availabilityPayload?.status === "AVAILABLE"
+                        ? "border-emerald-800/25 bg-emerald-50 text-emerald-950"
+                        : availabilityPayload?.status === "FEW_SLOTS_LEFT"
+                          ? "border-amber-800/35 bg-amber-50 text-amber-950"
+                          : "border-[color:var(--brand-burgundy-soft)]/40 bg-[color:var(--card-cream)] text-[color:var(--brand-burgundy-soft)]"
+                  }`}
+                >
+                  {availabilityBusy ? (
+                    t.form.availabilityChecking
+                  ) : availabilityPayload ? (
+                    language === "ar" ? availabilityPayload.messageAr : availabilityPayload.messageEn
+                  ) : (
+                    t.form.availabilityPickDate
+                  )}
+                </div>
+              ) : (
+                <p className="mt-2 text-[10px] text-[color:var(--muted-text)]">{t.form.availabilityPickDate}</p>
+              )}
             </label>
           </div>
         </MotionSection>
@@ -770,7 +853,12 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
           variants={staggerItemVariants(reduced)}
           whileTap={tapScale}
           transition={{ duration: 0.15 }}
-          disabled={orderPersistPhase === "saving" || orderPersistPhase === "opening"}
+          disabled={
+            orderPersistPhase === "saving" ||
+            orderPersistPhase === "opening" ||
+            availabilityBusy ||
+            !availabilityGatePasses
+          }
           aria-busy={orderPersistPhase === "saving"}
           className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-[color:var(--brand-gold-muted)]/45 bg-[color:var(--brand-burgundy)] px-4 py-3 text-[13px] font-semibold text-[color:var(--card-cream)] shadow-[0_10px_28px_-14px_rgba(65,6,19,0.45)] ring-1 ring-[color:var(--border-soft)] transition-[filter] hover:brightness-[1.03] focus-visible:outline-none active:brightness-95 disabled:pointer-events-none disabled:opacity-60"
         >
@@ -812,7 +900,7 @@ export function OrderForm({ language, initialProductId, initialSizeId }: OrderFo
               transition={{ duration: reduced ? 0.12 : 0.18, ease: easePremium }}
               className="px-1 text-center text-[10px] leading-snug text-[color:var(--brand-burgundy-soft)]"
             >
-              {t.orderSave.saveFailed}
+              {persistUserMessage ?? t.orderSave.saveFailed}
             </motion.p>
           ) : null}
         </AnimatePresence>
