@@ -215,6 +215,7 @@ async function main() {
   const settingEntries: Array<{ key: string; value: string }> = [
     { key: "whatsapp_number", value: brand.whatsappNumber },
     { key: "instagram_handle", value: brand.instagramHandle },
+    { key: "instagram_url", value: brand.instagramUrl },
     {
       key: "note_preorder",
       value: bilingualNoteJson(
