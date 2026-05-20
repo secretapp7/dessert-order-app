@@ -344,10 +344,12 @@ export function ProductImagesSection({
   productId,
   productSlug,
   images,
+  uploadAvailable = true,
 }: {
   productId: string;
   productSlug: string;
   images: SerializedImage[];
+  uploadAvailable?: boolean;
 }) {
   return (
     <div className="space-y-4">
@@ -362,10 +364,18 @@ export function ProductImagesSection({
             <AdminActionForm action={updateProductImageFormAction} className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               <input type="hidden" name="id" value={im.id} />
               <input type="hidden" name="productId" value={productId} />
-              <label className={lbl}>
-                URL / path
-                <input name="url" defaultValue={im.url} required className={field} />
-              </label>
+              <ImageUploadField
+                key={im.id}
+                inputName="url"
+                label="Product image"
+                defaultValue={im.url}
+                section="products"
+                entitySlug={productSlug}
+                entityId={productId}
+                required
+                inputClassName={field}
+                uploadAvailable={uploadAvailable}
+              />
               <label className={lbl}>
                 Type
                 <select name="type" defaultValue={im.type} className={field}>
@@ -417,12 +427,13 @@ export function ProductImagesSection({
           <input type="hidden" name="productId" value={productId} />
           <ImageUploadField
             inputName="url"
-            label="Image URL / path"
+            label="Product image"
             section="products"
             entitySlug={productSlug}
             entityId={productId}
             required
             inputClassName={field}
+            uploadAvailable={uploadAvailable}
           />
           <label className={lbl}>
             Type

@@ -21,7 +21,7 @@ const btn =
 const btnGhost =
   "rounded-lg border border-[color:var(--border-soft)] px-3 py-2 text-xs font-semibold hover:bg-white";
 
-export function OfferCreateForm() {
+export function OfferCreateForm({ uploadAvailable = true }: { uploadAvailable?: boolean }) {
   return (
     <AdminActionForm action={createOfferFormAction} className="max-w-2xl space-y-3">
       <div className="grid gap-2 sm:grid-cols-2">
@@ -52,10 +52,13 @@ export function OfferCreateForm() {
         Description (AR)
         <textarea name="descriptionAr" required rows={3} className={field} dir="rtl" />
       </label>
-      <label className={lbl}>
-        Image URL (optional)
-        <input name="imageUrl" className={field} />
-      </label>
+      <ImageUploadField
+        inputName="imageUrl"
+        label="Offer image (optional)"
+        section="offers"
+        inputClassName={field}
+        uploadAvailable={uploadAvailable}
+      />
       <div className="grid gap-2 sm:grid-cols-2">
         <label className={lbl}>
           Starts at (UTC, optional)
@@ -81,7 +84,13 @@ export function OfferCreateForm() {
   );
 }
 
-export function OfferEditForm({ offer }: { offer: OfferAdminClientRecord }) {
+export function OfferEditForm({
+  offer,
+  uploadAvailable = true,
+}: {
+  offer: OfferAdminClientRecord;
+  uploadAvailable?: boolean;
+}) {
   return (
     <>
       <AdminActionForm action={updateOfferFormAction} className="max-w-3xl space-y-3">
@@ -122,6 +131,7 @@ export function OfferEditForm({ offer }: { offer: OfferAdminClientRecord }) {
           entitySlug={offer.slug}
           entityId={offer.id}
           inputClassName={field}
+          uploadAvailable={uploadAvailable}
         />
         <div className="grid gap-2 sm:grid-cols-2">
           <label className={lbl}>

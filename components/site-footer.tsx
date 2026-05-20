@@ -13,7 +13,14 @@ export function SiteFooter({ language, variant = "default" }: SiteFooterProps) {
   if (variant === "compact") {
     return (
       <footer className="mt-5 border-t border-[color:var(--border-soft)]/90 pt-3 text-center text-[10px] leading-relaxed text-[color:var(--foreground)]/58">
-        <p className="font-medium text-[color:var(--brand-burgundy-soft)]">{brand.instagramHandle}</p>
+        <a
+          href={brand.instagramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-[color:var(--brand-burgundy-soft)] hover:underline"
+        >
+          {brand.instagramHandle}
+        </a>
         <p className="mt-1 text-[color:var(--foreground)]/55">
           {brand.city[language]}
           <span className="text-[color:var(--brand-gold-muted)]" aria-hidden>
@@ -38,7 +45,16 @@ export function SiteFooter({ language, variant = "default" }: SiteFooterProps) {
         {brand.city[language]}
       </p>
       <p className="mt-1 text-[10px] text-[color:var(--foreground)]/52">{t.footer.igLine}</p>
-      <p className="mt-2 text-[11px] text-[color:var(--foreground)]/45">{brand.instagramHandle}</p>
+      <p className="mt-2 text-[11px] text-[color:var(--foreground)]/45">
+        <a
+          href={brand.instagramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-[color:var(--brand-burgundy-soft)] hover:underline"
+        >
+          {brand.instagramHandle}
+        </a>
+      </p>
     </footer>
   );
 }

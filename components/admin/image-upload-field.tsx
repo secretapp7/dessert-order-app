@@ -17,6 +17,8 @@ type ImageUploadFieldProps = {
   required?: boolean;
   inputClassName?: string;
   helperText?: string;
+  /** When false, shows that PC upload is unavailable (manual URL/path still works). */
+  uploadAvailable?: boolean;
 };
 
 const defaultInputClass =
@@ -32,6 +34,7 @@ export function ImageUploadField({
   required = false,
   inputClassName = defaultInputClass,
   helperText,
+  uploadAvailable = true,
 }: ImageUploadFieldProps) {
   const fileInputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -86,11 +89,11 @@ export function ImageUploadField({
 
   return (
     <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-      <span className="block text-[11px] font-semibold text-[color:var(--muted-text)]">{label}</span>
-
-      <div className="flex flex-wrap items-start gap-3">
-        <AdminImageThumb src={url} />
+      <div className="flex flex-wrap items-start gap-3 rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)]/40 p-3">
+        <AdminImageThumb src={url} alt={label} />
         <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <p className="text-[11px] font-semibold text-[color:var(--muted-text)]">{label}</p>
+
           <div className="flex flex-wrap items-center gap-2">
             <input
               ref={fileRef}
@@ -99,18 +102,18 @@ export function ImageUploadField({
               accept="image/jpeg,image/png,image/webp"
               className="sr-only"
               onChange={onFileChange}
-              disabled={loading}
+              disabled={loading || !uploadAvailable}
             />
             <label
               htmlFor={fileInputId}
-              className={`inline-flex cursor-pointer items-center rounded-lg border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-3 py-2 text-xs font-semibold text-[color:var(--brand-burgundy)] shadow-sm hover:bg-white ${loading ? "pointer-events-none opacity-60" : ""}`}
+              className={`inline-flex cursor-pointer items-center rounded-lg border-2 border-[color:var(--brand-burgundy)] bg-[color:var(--brand-burgundy)] px-3 py-2 text-xs font-semibold text-[color:var(--card-cream)] shadow-sm hover:brightness-110 ${loading || !uploadAvailable ? "pointer-events-none opacity-60" : ""}`}
             >
-              {loading ? "Uploading…" : "Choose image"}
+              {loading ? "Uploading…" : "Choose image from PC"}
             </label>
             {url.trim() ? (
               <button
                 type="button"
-                className="rounded-lg border border-[color:var(--border-soft)] px-3 py-2 text-xs font-semibold text-[color:var(--muted-text)] hover:bg-white"
+                className="rounded-lg border border-[color:var(--border-soft)] bg-white px-3 py-2 text-xs font-semibold text-[color:var(--muted-text)] hover:bg-[color:var(--card-cream)]"
                 onClick={() => {
                   setUrl("");
                   setStatus(null);
@@ -123,8 +126,15 @@ export function ImageUploadField({
             ) : null}
           </div>
 
-          <label className="block text-[10px] font-medium text-[color:var(--muted-text)]">
-            Manual URL or path (advanced)
+          {!uploadAvailable ? (
+            <p className="text-[10px] font-medium text-amber-900">
+              Image upload storage is not configured. Paste an image URL or path below, or set{" "}
+              <code className="font-mono">BLOB_READ_WRITE_TOKEN</code> in the server environment.
+            </p>
+          ) : null}
+
+          <label className="block text-[11px] font-semibold text-[color:var(--muted-text)]">
+            Image URL / path
             <input
               name={inputName}
               value={url}
@@ -142,8 +152,7 @@ export function ImageUploadField({
             <p className="text-[10px] leading-snug text-[color:var(--muted-text)]">{helperText}</p>
           ) : (
             <p className="text-[10px] leading-snug text-[color:var(--muted-text)]">
-              Upload from your PC when storage is configured, or paste a public path like{" "}
-              <code className="font-mono">/images/products/…</code> or an https URL.
+              JPEG, PNG, or WebP up to 5 MB. After upload, save the form to persist the URL.
             </p>
           )}
 
