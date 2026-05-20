@@ -18,6 +18,9 @@ import type { GpsLike } from "@/lib/orders/location-rules";
 import { Prisma } from "@prisma/client";
 
 import type { CreateOrderPayload } from "./order-validation";
+import { assertDateCanAcceptOrder } from "@/lib/availability/availability-service";
+import { OrderAvailabilityBlockedError } from "@/lib/availability/order-availability-error";
+import { OrderCatalogNotAvailableError } from "@/lib/storefront/order-catalog-error";
 
 function prismaFulfillment(form: FulfillmentMethod): "PICKUP" | "DELIVERY" {
   return form === FULFILLMENT.PICKUP ? "PICKUP" : "DELIVERY";
@@ -33,6 +36,10 @@ function prismaDateUtc(isoDay: string): Date {
   const m = Number(moStr);
   const d = Number(dStr);
   return new Date(Date.UTC(y, m - 1, d));
+}
+
+function decimalToNumber(value: { toString(): string } | number): number {
+  return typeof value === "number" ? value : Number(value.toString());
 }
 
 function formatPublicCandidate(): string {
@@ -65,43 +72,102 @@ function orderMapsLink(data: CreateOrderPayload): string | null {
   return null;
 }
 
-async function resolveDbProductSizeIds(
-  staticProductSlug: string,
-  staticSizeId: string,
-): Promise<{ productDbId: string; productSizeDbId: string }> {
-  const staticProduct = staticProducts.find((p) => p.id === staticProductSlug);
-  const staticSize = staticProduct?.sizes.find((s) => s.id === staticSizeId);
-  if (!staticProduct || !staticSize) {
-    throw new Error("STATIC_PRODUCT_NOT_FOUND");
-  }
+type ResolvedCatalogLine = {
+  productDbId: string | null;
+  productSizeDbId: string | null;
+  productNameEn: string;
+  productNameAr: string;
+  sizeLabelEn: string;
+  sizeLabelAr: string;
+  unitPriceOmrNum: number;
+  estimatedUnitCostOmrNum: number;
+  productSlug: string;
+  sizePublicId: string;
+};
+
+async function resolveCatalogLine(input: CreateOrderPayload): Promise<ResolvedCatalogLine> {
+  const productSlug = input.productId.trim();
+  const sizePublicId = input.productSizeId.trim();
 
   const dbProduct = await prisma.product.findUnique({
-    where: { slug: staticProductSlug },
+    where: { slug: productSlug },
+    include: {
+      sizes: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
+    },
+  });
+
+  if (dbProduct) {
+    if (dbProduct.status !== "ACTIVE") {
+      throw new OrderCatalogNotAvailableError();
+    }
+
+    const dbSize = dbProduct.sizes.find((s) => s.id === sizePublicId);
+    if (!dbSize) {
+      throw new OrderCatalogNotAvailableError();
+    }
+
+    const unitPriceOmrNum = decimalToNumber(dbSize.priceOmr);
+    const estimatedUnitCostOmrNum =
+      decimalToNumber(dbSize.ingredientCostOmr) +
+      decimalToNumber(dbSize.packagingCostOmr) +
+      decimalToNumber(dbSize.laborCostOmr);
+
+    return {
+      productDbId: dbProduct.id,
+      productSizeDbId: dbSize.id,
+      productNameEn: dbProduct.nameEn,
+      productNameAr: dbProduct.nameAr,
+      sizeLabelEn: `${dbSize.labelEn} (${dbSize.servesEn})`,
+      sizeLabelAr: `${dbSize.labelAr} (${dbSize.servesAr})`,
+      unitPriceOmrNum,
+      estimatedUnitCostOmrNum,
+      productSlug,
+      sizePublicId,
+    };
+  }
+
+  const staticProduct = staticProducts.find((p) => p.id === productSlug);
+  const staticSize = staticProduct?.sizes.find((s) => s.id === sizePublicId);
+  if (!staticProduct || !staticSize) {
+    throw new OrderCatalogNotAvailableError();
+  }
+
+  const dbBySlug = await prisma.product.findUnique({
+    where: { slug: productSlug },
     include: { sizes: { orderBy: { sortOrder: "asc" } } },
   });
 
-  if (!dbProduct?.sizes?.length) {
-    throw new Error("DB_PRODUCT_NOT_FOUND");
+  const productDbId: string | null = dbBySlug?.id ?? null;
+  let productSizeDbId: string | null = null;
+
+  if (dbBySlug?.sizes?.length) {
+    const idx = staticProduct.sizes.findIndex((s) => s.id === sizePublicId);
+    let dbSize = idx >= 0 ? dbBySlug.sizes[idx] : undefined;
+    if (!dbSize) {
+      dbSize = dbBySlug.sizes.find(
+        (row) =>
+          row.labelEn === staticSize.label.en &&
+          row.servesEn === staticSize.serves.en &&
+          decimalToNumber(row.priceOmr) === staticSize.priceOmr,
+      );
+    }
+    if (dbSize) {
+      productSizeDbId = dbSize.id;
+    }
   }
 
-  const idx = staticProduct.sizes.findIndex((s) => s.id === staticSizeId);
-  let dbSize =
-    idx >= 0 ? dbProduct.sizes[idx] : undefined;
-
-  if (!dbSize) {
-    dbSize = dbProduct.sizes.find(
-      (row) =>
-        row.labelEn === staticSize.label.en &&
-        row.servesEn === staticSize.serves.en &&
-        Number(row.priceOmr) === staticSize.priceOmr,
-    );
-  }
-
-  if (!dbSize) {
-    throw new Error("DB_PRODUCT_SIZE_NOT_FOUND");
-  }
-
-  return { productDbId: dbProduct.id, productSizeDbId: dbSize.id };
+  return {
+    productDbId,
+    productSizeDbId,
+    productNameEn: staticProduct.name.en,
+    productNameAr: staticProduct.name.ar,
+    sizeLabelEn: `${staticSize.label.en} (${staticSize.serves.en})`,
+    sizeLabelAr: `${staticSize.label.ar} (${staticSize.serves.ar})`,
+    unitPriceOmrNum: staticSize.priceOmr,
+    estimatedUnitCostOmrNum: 0,
+    productSlug,
+    sizePublicId,
+  };
 }
 
 async function upsertCustomerByPhone(
@@ -129,25 +195,23 @@ export async function persistOrder(input: CreateOrderPayload): Promise<{
   whatsappMessage: string;
   whatsappUrl: string;
 }> {
-  const staticProduct = staticProducts.find((p) => p.id === input.productId);
-  const staticSize = staticProduct?.sizes.find((s) => s.id === input.productSizeId);
-  if (!staticProduct || !staticSize) {
-    throw new Error("STATIC_PRODUCT_NOT_FOUND");
+  const catalog = await resolveCatalogLine(input);
+
+  const gate = await assertDateCanAcceptOrder(input.dateNeeded, input.quantity);
+  if (!gate.ok) {
+    throw new OrderAvailabilityBlockedError(gate.messageEn, gate.messageAr);
   }
 
-  const dessertSubtotalOmrNum = staticSize.priceOmr * input.quantity;
-  const unitPriceOmrNum = staticSize.priceOmr;
-
-  const { productDbId, productSizeDbId } = await resolveDbProductSizeIds(
-    input.productId,
-    input.productSizeId,
-  );
+  const dessertSubtotalOmrNum = catalog.unitPriceOmrNum * input.quantity;
+  const unitPriceOmrNum = catalog.unitPriceOmrNum;
+  const estimatedLineCostOmrNum = catalog.estimatedUnitCostOmrNum * input.quantity;
+  const estimatedLineProfitOmrNum = dessertSubtotalOmrNum - estimatedLineCostOmrNum;
 
   const formLike: WhatsappOrderFormLike = {
     customerName: input.customerName,
     phoneNumber: input.customerPhone,
-    productId: input.productId,
-    sizeId: input.productSizeId,
+    productId: catalog.productSlug,
+    sizeId: catalog.sizePublicId,
     quantity: input.quantity,
     dateNeeded: input.dateNeeded,
     fulfillmentMethod: input.fulfillmentMethod,
@@ -158,8 +222,8 @@ export async function persistOrder(input: CreateOrderPayload): Promise<{
 
   const lang = input.language as AppLanguage;
 
-  const dessertName = staticProduct.name[lang];
-  const sizeLine = `${staticSize.label[lang]} (${staticSize.serves[lang]})`;
+  const dessertName = lang === "ar" ? catalog.productNameAr : catalog.productNameEn;
+  const sizeLine = lang === "ar" ? catalog.sizeLabelAr : catalog.sizeLabelEn;
 
   let gpsPayload: GpsLike | null = null;
   if (input.fulfillmentMethod === FULFILLMENT.DELIVERY && input.gps) {
@@ -195,6 +259,8 @@ export async function persistOrder(input: CreateOrderPayload): Promise<{
   const totalOmr = dessertSubtotalOmr;
   const unitPriceOmr = new Prisma.Decimal(unitPriceOmrNum.toFixed(3));
   const lineTotalOmr = dessertSubtotalOmr;
+  const estimatedUnitCostOmr = new Prisma.Decimal(catalog.estimatedUnitCostOmrNum.toFixed(3));
+  const estimatedLineProfitOmr = new Prisma.Decimal(estimatedLineProfitOmrNum.toFixed(3));
 
   const dateNeededDb = prismaDateUtc(input.dateNeeded);
 
@@ -259,15 +325,17 @@ export async function persistOrder(input: CreateOrderPayload): Promise<{
         items: {
           create: [
             {
-              productId: productDbId,
-              productSizeId: productSizeDbId,
-              productNameEn: staticProduct.name.en,
-              productNameAr: staticProduct.name.ar,
-              sizeLabelEn: `${staticSize.label.en} (${staticSize.serves.en})`,
-              sizeLabelAr: `${staticSize.label.ar} (${staticSize.serves.ar})`,
+              productId: catalog.productDbId,
+              productSizeId: catalog.productSizeDbId,
+              productNameEn: catalog.productNameEn,
+              productNameAr: catalog.productNameAr,
+              sizeLabelEn: catalog.sizeLabelEn,
+              sizeLabelAr: catalog.sizeLabelAr,
               quantity: input.quantity,
               unitPriceOmr,
               lineTotalOmr,
+              estimatedUnitCostOmr,
+              estimatedLineProfitOmr,
             },
           ],
         },
