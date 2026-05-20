@@ -3,11 +3,14 @@ import { notFound } from "next/navigation";
 
 import { OfferEditForm } from "@/components/admin/offers/offer-forms";
 import { getOfferForAdmin } from "@/lib/admin/data/offer-queries";
+import { isAdminImageStorageConfigured } from "@/lib/storage/image-storage";
 
 export default async function AdminEditOfferPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const offer = await getOfferForAdmin(id);
   if (!offer) notFound();
+
+  const uploadAvailable = isAdminImageStorageConfigured();
 
   return (
     <div className="space-y-8">
@@ -27,7 +30,7 @@ export default async function AdminEditOfferPage({ params }: { params: Promise<{
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-white/80 p-4 shadow-sm">
         <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">Offer details</h2>
         <div className="mt-3">
-          <OfferEditForm offer={offer} />
+          <OfferEditForm offer={offer} uploadAvailable={uploadAvailable} />
         </div>
       </section>
     </div>

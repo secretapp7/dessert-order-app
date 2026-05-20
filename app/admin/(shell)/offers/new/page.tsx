@@ -1,8 +1,11 @@
 import Link from "next/link";
 
 import { OfferCreateForm } from "@/components/admin/offers/offer-forms";
+import { isAdminImageStorageConfigured } from "@/lib/storage/image-storage";
 
 export default async function AdminNewOfferPage() {
+  const uploadAvailable = isAdminImageStorageConfigured();
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -20,7 +23,7 @@ export default async function AdminNewOfferPage() {
         </Link>
       </div>
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-white/80 p-4 shadow-sm">
-        <OfferCreateForm />
+        <OfferCreateForm uploadAvailable={uploadAvailable} />
       </section>
     </div>
   );

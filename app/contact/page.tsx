@@ -99,7 +99,7 @@ export default function ContactPage() {
                 <p className="mt-1.5 text-[10px] leading-snug text-[color:var(--foreground)]/68">{t.contactPage.trustInstagramBody}</p>
               </div>
               <MotionLink
-                href={`https://instagram.com/${brand.instagramHandle.replace(/^@/, "")}`}
+                href={brand.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 whileTap={tapScale}

@@ -10,6 +10,7 @@ import {
 } from "@/components/admin/products/product-edit-forms";
 import { ProductLifecycleSection } from "@/components/admin/products/product-lifecycle-section";
 import { getCategoriesForSelect, getProductForAdmin } from "@/lib/admin/data/catalog-queries";
+import { isAdminImageStorageConfigured } from "@/lib/storage/image-storage";
 
 function omr(v: unknown): string {
   const n = Number(v);
@@ -21,6 +22,8 @@ export default async function AdminEditProductPage({ params }: { params: Promise
   const [product, categories] = await Promise.all([getProductForAdmin(id), getCategoriesForSelect()]);
 
   if (!product) notFound();
+
+  const uploadAvailable = isAdminImageStorageConfigured();
 
   const sizes: SerializedSize[] = product.sizes.map((s) => ({
     id: s.id,
@@ -92,7 +95,12 @@ export default async function AdminEditProductPage({ params }: { params: Promise
       </section>
 
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-white/80 p-4 shadow-sm">
-        <ProductImagesSection productId={product.id} productSlug={product.slug} images={images} />
+        <ProductImagesSection
+          productId={product.id}
+          productSlug={product.slug}
+          images={images}
+          uploadAvailable={uploadAvailable}
+        />
       </section>
     </div>
   );
