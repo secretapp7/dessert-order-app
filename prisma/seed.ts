@@ -3,10 +3,11 @@ import { resolve } from "node:path";
 
 import { PrismaClient, Prisma, ProductImageType } from "@prisma/client";
 
-import { brand } from "../config/brand";
 import { translations } from "../config/translations";
 import { products as staticProducts } from "../data/products";
 import { AVAILABILITY_KEYS } from "../lib/availability/availability-keys";
+import { getDefaultBusinessSettingValues } from "../lib/settings/defaults";
+import { ALL_BUSINESS_SETTING_KEYS } from "../lib/settings/settings-keys";
 
 /** Loads `.env.local` then `.env` so `npm run prisma:seed` finds DATABASE_URL like Next.js. */
 function mergeEnvFile(relativePath: string) {
@@ -212,10 +213,9 @@ async function main() {
     }
   }
 
+  const defaults = getDefaultBusinessSettingValues();
   const settingEntries: Array<{ key: string; value: string }> = [
-    { key: "whatsapp_number", value: brand.whatsappNumber },
-    { key: "instagram_handle", value: brand.instagramHandle },
-    { key: "instagram_url", value: brand.instagramUrl },
+    ...ALL_BUSINESS_SETTING_KEYS.map((key) => ({ key, value: defaults[key] ?? "" })),
     {
       key: "note_preorder",
       value: bilingualNoteJson(
@@ -239,13 +239,10 @@ async function main() {
     },
   ];
 
-  for (const { key, value } of settingEntries) {
-    await prisma.businessSetting.upsert({
-      where: { key },
-      create: { key, value },
-      update: { value },
-    });
-  }
+  await prisma.businessSetting.createMany({
+    data: settingEntries,
+    skipDuplicates: true,
+  });
 
   await prisma.availabilitySetting.createMany({
     data: [
