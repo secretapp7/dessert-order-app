@@ -4,7 +4,8 @@ import crypto from "node:crypto";
 
 import type { FulfillmentMethod } from "@/config/fulfillment";
 import { FULFILLMENT } from "@/config/fulfillment";
-import { brand } from "@/config/brand";
+import { getPublicBusinessSettings } from "@/lib/settings/public-settings";
+import { resolveWhatsappNumber } from "@/lib/settings/public-settings-types";
 import type { AppLanguage } from "@/config/translations";
 import { products as staticProducts } from "@/data/products";
 import { prisma } from "@/lib/db/prisma";
@@ -249,7 +250,8 @@ export async function persistOrder(input: CreateOrderPayload): Promise<{
   });
   const whatsappMessage = joinWhatsappMessage(lines);
 
-  const normalizedPhone = brand.whatsappNumber.replace(/\D/g, "");
+  const publicSettings = await getPublicBusinessSettings();
+  const normalizedPhone = resolveWhatsappNumber(publicSettings);
   const whatsappUrl = `https://api.whatsapp.com/send?phone=${normalizedPhone}&text=${encodeURIComponent(whatsappMessage)}`;
 
   const publicId = await generateUniquePublicId();
