@@ -2,7 +2,11 @@ import "server-only";
 
 import { ExpenseCategory, Prisma } from "@prisma/client";
 
-import { expenseAdminRecordSelect, type ExpenseAdminRecord } from "@/lib/admin/expense-admin-record";
+import {
+  expenseAdminRecordSelect,
+  serializeExpenseForAdmin,
+  type ExpenseAdminClientRecord,
+} from "@/lib/admin/expense-admin-record";
 import { prisma } from "@/lib/db/prisma";
 
 export type ExpenseListFilters = {
@@ -67,9 +71,10 @@ export async function getExpensesForAdmin(filters: ExpenseListFilters) {
   return { rows, filteredTotalAmount, filteredRowCount: totals._count };
 }
 
-export async function getExpenseForAdmin(id: string): Promise<ExpenseAdminRecord | null> {
-  return prisma.expense.findUnique({
+export async function getExpenseForAdmin(id: string): Promise<ExpenseAdminClientRecord | null> {
+  const row = await prisma.expense.findUnique({
     where: { id },
     select: expenseAdminRecordSelect,
   });
+  return row ? serializeExpenseForAdmin(row) : null;
 }

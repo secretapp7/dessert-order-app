@@ -3,6 +3,10 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
+import {
+  serializeOfferForAdmin,
+  type OfferAdminClientRecord,
+} from "@/lib/admin/offer-admin-record";
 
 export type OfferListFilters = {
   q?: string;
@@ -44,6 +48,7 @@ export async function getOffersForAdmin(filters: OfferListFilters) {
   });
 }
 
-export async function getOfferForAdmin(id: string) {
-  return prisma.offer.findUnique({ where: { id } });
+export async function getOfferForAdmin(id: string): Promise<OfferAdminClientRecord | null> {
+  const row = await prisma.offer.findUnique({ where: { id } });
+  return row ? serializeOfferForAdmin(row) : null;
 }

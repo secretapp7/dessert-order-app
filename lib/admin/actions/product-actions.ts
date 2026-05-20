@@ -12,6 +12,7 @@ import {
   productSizeInputSchema,
 } from "@/lib/admin/validation/catalog";
 import { prisma } from "@/lib/db/prisma";
+import { revalidateStorefrontPaths } from "@/lib/storefront/revalidate-storefront";
 
 import type { AdminFormState } from "@/lib/admin/admin-form-state";
 
@@ -39,10 +40,15 @@ function decimalsForSize(data: z.infer<typeof productSizeInputSchema>) {
   };
 }
 
-function revalidateProductPaths(productId: string) {
+async function revalidateProductPaths(productId: string) {
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${productId}`);
   revalidatePath("/admin");
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    select: { slug: true },
+  });
+  revalidateStorefrontPaths(product?.slug);
 }
 
 export async function createProductAction(formData: FormData): Promise<CreateProductResult> {
@@ -116,7 +122,7 @@ export async function createProductAction(formData: FormData): Promise<CreatePro
         },
       },
     });
-    revalidateProductPaths(product.id);
+    await revalidateProductPaths(product.id);
     revalidatePath("/admin/categories");
     return { ok: true, productId: product.id };
   } catch (e) {
@@ -166,7 +172,7 @@ export async function updateProductAction(formData: FormData): Promise<ActionRes
         sortOrder: coreParsed.data.sortOrder,
       },
     });
-    revalidateProductPaths(id);
+    await revalidateProductPaths(id);
     revalidatePath("/admin/categories");
     return { ok: true };
   } catch (e) {
@@ -209,7 +215,7 @@ export async function createProductSizeAction(formData: FormData): Promise<Actio
         isActive: sizeParsed.data.isActive,
       },
     });
-    revalidateProductPaths(productId);
+    await revalidateProductPaths(productId);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -252,7 +258,7 @@ export async function updateProductSizeAction(formData: FormData): Promise<Actio
         isActive: sizeParsed.data.isActive,
       },
     });
-    revalidateProductPaths(productId);
+    await revalidateProductPaths(productId);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -269,7 +275,7 @@ export async function deactivateProductSizeAction(formData: FormData): Promise<A
       where: { id },
       data: { isActive: false },
     });
-    revalidateProductPaths(productId);
+    await revalidateProductPaths(productId);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -296,7 +302,7 @@ export async function deleteProductSizeAction(formData: FormData): Promise<Actio
       };
     }
     await prisma.productSize.delete({ where: { id } });
-    revalidateProductPaths(productId);
+    await revalidateProductPaths(productId);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -326,7 +332,7 @@ async function setProductLifecycleStatus(
     const exists = await prisma.product.findUnique({ where: { id }, select: { id: true } });
     if (!exists) return { ok: false, error: "Product not found." };
     await prisma.product.update({ where: { id }, data: { status } });
-    revalidateProductPaths(id);
+    await revalidateProductPaths(id);
     revalidatePath("/admin/categories");
     return { ok: true };
   } catch (e) {
@@ -364,6 +370,7 @@ export async function deleteProductAction(formData: FormData): Promise<ActionRes
     revalidatePath("/admin");
     revalidatePath(`/admin/products/${id}`);
     revalidatePath("/admin/categories");
+    revalidateStorefrontPaths(product.slug);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -396,7 +403,7 @@ export async function createProductImageAction(formData: FormData): Promise<Acti
         sortOrder: parsed.data.sortOrder,
       },
     });
-    revalidateProductPaths(productId);
+    await revalidateProductPaths(productId);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -430,7 +437,7 @@ export async function updateProductImageAction(formData: FormData): Promise<Acti
         sortOrder: parsed.data.sortOrder,
       },
     });
-    revalidateProductPaths(productId);
+    await revalidateProductPaths(productId);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -444,7 +451,7 @@ export async function deleteProductImageAction(formData: FormData): Promise<Acti
   if (!id || !productId) return { ok: false, error: "Missing image." };
   try {
     await prisma.productImage.delete({ where: { id } });
-    revalidateProductPaths(productId);
+    await revalidateProductPaths(productId);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };

@@ -8,6 +8,7 @@ import type { AdminFormState } from "@/lib/admin/admin-form-state";
 import { requireAdmin } from "@/lib/auth/admin-session";
 import { categoryInputSchema } from "@/lib/admin/validation/catalog";
 import { prisma } from "@/lib/db/prisma";
+import { revalidateStorefrontPaths } from "@/lib/storefront/revalidate-storefront";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -47,6 +48,7 @@ export async function createCategoryAction(formData: FormData): Promise<ActionRe
     });
     revalidatePath("/admin/categories");
     revalidatePath("/admin");
+    revalidateStorefrontPaths();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -99,6 +101,7 @@ export async function updateCategoryAction(formData: FormData): Promise<ActionRe
     revalidatePath("/admin/categories");
     revalidatePath(`/admin/categories/${id}`);
     revalidatePath("/admin");
+    revalidateStorefrontPaths();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -136,6 +139,7 @@ export async function deactivateCategoryAction(formData: FormData): Promise<Acti
     revalidatePath(`/admin/categories/${id}`);
     revalidatePath("/admin/products");
     revalidatePath("/admin");
+    revalidateStorefrontPaths();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -154,6 +158,7 @@ export async function activateCategoryAction(formData: FormData): Promise<Action
     revalidatePath(`/admin/categories/${id}`);
     revalidatePath("/admin/products");
     revalidatePath("/admin");
+    revalidateStorefrontPaths();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
@@ -186,6 +191,7 @@ export async function deleteCategoryAction(formData: FormData): Promise<ActionRe
     revalidatePath("/admin/products");
     revalidatePath(`/admin/categories/${id}`);
     revalidatePath("/admin");
+    revalidateStorefrontPaths();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };

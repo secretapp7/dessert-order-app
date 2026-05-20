@@ -9,6 +9,7 @@ import type { AdminFormState } from "@/lib/admin/admin-form-state";
 import { offerCoreSchema } from "@/lib/admin/validation/offer-admin";
 import { requireAdmin } from "@/lib/auth/admin-session";
 import { prisma } from "@/lib/db/prisma";
+import { revalidateStorefrontPaths } from "@/lib/storefront/revalidate-storefront";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -67,6 +68,7 @@ function revalidateOfferPaths(id: string) {
   revalidatePath(`/admin/offers/${id}`);
   revalidatePath("/admin");
   revalidatePath("/admin/reports/profit");
+  revalidateStorefrontPaths();
 }
 
 export async function createOfferAction(formData: FormData): Promise<CreateOfferResult> {
@@ -168,6 +170,7 @@ export async function deleteOfferAction(formData: FormData): Promise<ActionResul
     revalidatePath(`/admin/offers/${id}`);
     revalidatePath("/admin");
     revalidatePath("/admin/reports/profit");
+    revalidateStorefrontPaths();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyPrismaError(e) };
