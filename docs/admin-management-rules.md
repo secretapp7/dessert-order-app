@@ -101,6 +101,16 @@ This document records **safe defaults** for catalog and operations data. It comp
 - **Avoid nested `<form>`** elements; use sibling forms/button groups.
 - Destructive actions need **explicit copy** (“Delete permanently”, “Archive”, “Hide”) plus confirmations where deletes are irreversible.
 
+| **Reports / export** | N/A read-only | N/A | UTC month/range reports; CSV export admin-only; cancelled orders excluded from income; voided expenses excluded; archived orders included in order exports. |
+
+## Reports & CSV export
+
+- **Income:** Sum of `Order.totalOmr` for non-cancelled orders in UTC `createdAt` window; dessert subtotal and delivery fees tracked separately.
+- **Expenses:** Sum by `expenseDate`; rows with `voidedAt` excluded from profit totals (included in expense CSV with void columns).
+- **Net profit:** Gross income minus expenses; **estimated net profit** also subtracts COGS from `OrderItem.estimatedUnitCostOmr` when present.
+- **Unpaid receivables:** Sum of `totalOmr` for qualifying orders with `paymentStatus: UNPAID` — shown separately, still counted in gross income.
+- **CSV exports:** Admin session required; UTF-8 BOM for Excel; filenames `coco-treats-*-YYYY-MM.csv`.
+
 ## Reviews
 
 - Operational states: **`APPROVED`** (public), **`PENDING`** (admin only), **`HIDDEN`** (admin only).

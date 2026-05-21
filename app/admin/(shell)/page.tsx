@@ -93,72 +93,52 @@ export default async function AdminDashboardPage() {
         </p>
       </section>
 
-      <section className="grid gap-3 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
-            This month (UTC) — dessert subtotal
-          </h2>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-[color:var(--accent-cocoa)]">
-            {money(data.monthDessertRevenue)} OMR
-          </p>
-          <p className="mt-1 text-[11px] text-[color:var(--muted-text)]">Cancelled orders excluded.</p>
-        </div>
-        <div className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
-          <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
-            This month (UTC) — total charged
-          </h2>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-[color:var(--accent-cocoa)]">
-            {money(data.monthTotalRevenue)} OMR
-          </p>
-          <p className="mt-1 text-[11px] text-[color:var(--muted-text)]">
-            Sum of stored order totals (includes delivery fee when set). Cancelled orders excluded.
-          </p>
-        </div>
-      </section>
-
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
-        <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
-          Month snapshot ({p.monthLabel} UTC)
-        </h2>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <MiniStat title="Expenses · void excluded" value={`${money(p.expensesTotal)} OMR`} />
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+            Income & profit ({p.monthLabel} UTC)
+          </h2>
+          <Link
+            href="/admin/reports"
+            className="text-xs font-semibold text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+          >
+            All reports
+          </Link>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MiniStat title="Today income" value={`${money(data.todayIncome)} OMR`} />
+          <MiniStat title="Month income" value={`${money(p.revenue)} OMR`} />
+          <MiniStat title="Month expenses" value={`${money(p.expensesTotal)} OMR`} />
+          <MiniStat title="Net profit" value={`${money(p.netProfit)} OMR`} />
           <MiniStat title="Est. net profit" value={`${money(p.estimatedNetProfit)} OMR`} />
+          <MiniStat title="Unpaid receivables" value={`${money(p.unpaidTotal)} OMR`} />
           <MiniStat title="Unpaid orders" value={String(p.unpaidCount)} />
+          <MiniStat
+            title="Best seller (month)"
+            value={data.bestSeller ? `${data.bestSeller.label} ×${data.bestSeller.units}` : "—"}
+          />
         </div>
         <p className="mt-2 text-[11px] text-[color:var(--muted-text)]">
-          Net profit ≈ revenue (excl. cancelled) minus estimated COGS ({money(p.estimatedCogs)} OMR) minus expenses recorded
-          for the month by <span className="font-medium">expenseDate</span>. See the profit report for full tables.
+          Cancelled orders excluded from income. Voided expenses excluded. Archived orders still count.
           {p.suspiciousZeroCost ? (
             <>
               {" "}
-              <span className="text-[color:var(--brand-burgundy-soft)]">Some line items still show zero unit cost.</span>
+              <span className="text-[color:var(--brand-burgundy-soft)]">Some line items show zero unit cost.</span>
             </>
           ) : null}
         </p>
         <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold">
-          <Link
-            href="/admin/reports/profit"
-            className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
-          >
+          <Link href="/admin/reports/monthly" className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline">
+            Monthly report
+          </Link>
+          <Link href="/admin/reports/profit" className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline">
             Profit report
           </Link>
-          <Link
-            href="/admin/expenses"
-            className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
-          >
+          <Link href="/admin/reports/export" className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline">
+            Export CSV
+          </Link>
+          <Link href="/admin/expenses" className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline">
             Expenses
-          </Link>
-          <Link
-            href="/admin/offers"
-            className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
-          >
-            Offers
-          </Link>
-          <Link
-            href="/admin/availability"
-            className="text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
-          >
-            Availability
           </Link>
         </div>
       </section>

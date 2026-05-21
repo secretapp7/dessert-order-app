@@ -10,6 +10,7 @@ import { getAdminOrderById } from "@/lib/admin/dashboard-data";
 import { decimalToFormString } from "@/lib/admin/admin-serialize";
 import {
   buildOrderReviewUrl,
+  buildReviewRequestWhatsappUrl,
   buildReviewWhatsAppMessage,
   ensureOrderReviewToken,
 } from "@/lib/reviews/review-token";
@@ -39,7 +40,10 @@ export default async function AdminOrderDetailPage({
     reviewUrl,
     order.language,
   );
-  const whatsAppReviewUrl = `https://wa.me/${digitsOnly(order.customerPhone)}?text=${encodeURIComponent(reviewWhatsAppMessage)}`;
+  const whatsAppReviewUrl = buildReviewRequestWhatsappUrl(
+    order.customerPhone,
+    reviewWhatsAppMessage,
+  );
 
   const waCustomer = `https://wa.me/${digitsOnly(order.customerPhone)}`;
   const mapsLink = order.mapsLink?.trim();

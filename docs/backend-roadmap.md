@@ -2,6 +2,13 @@
 
 ## Current phase
 
+**Phase 10 — Reports, export & income dashboard (completed)**
+
+- **Routes:** `/admin/reports` (hub), `/admin/reports/monthly`, `/admin/reports/profit` (upgraded), `/admin/reports/export`, plus protected CSV routes under `/admin/reports/export/{orders|order-items|expenses|profit|products}`.
+- **Data:** Shared `lib/admin/data/report-queries.ts` — income/expense/profit summaries, product sales, order/payment/fulfillment breakdowns, daily trends (UTC boundaries).
+- **Rules:** Gross income from `Order.totalOmr`; cancelled excluded; archived included; voided expenses excluded; unpaid totals tracked separately; net profit = income − expenses; estimated product profit from `OrderItem` cost snapshots when available.
+- **Export:** UTF-8 BOM CSV for Excel Arabic; admin session required; no new npm packages.
+
 **Phase 9B — Customer review submission (completed)**
 
 - **Public route:** `/review/{publicId}?token=…` — token-protected review form after delivery (no customer login).

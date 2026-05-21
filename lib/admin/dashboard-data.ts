@@ -3,6 +3,11 @@ import "server-only";
 import { FulfillmentMethod, OrderStatus, Prisma } from "@prisma/client";
 
 import { getMonthProfitBriefUtc } from "@/lib/admin/data/profit-queries";
+import {
+  getBestSellerForRange,
+  getTodayIncome,
+  utcMonthRangeFor,
+} from "@/lib/admin/data/report-queries";
 import { prisma } from "@/lib/db/prisma";
 
 export function utcTodayRange(): { start: Date; end: Date } {
@@ -17,11 +22,7 @@ export function utcTodayRange(): { start: Date; end: Date } {
 }
 
 export function utcMonthRange(): { start: Date; end: Date } {
-  const now = new Date();
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
-  const end = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0, 23, 59, 59, 999),
-  );
+  const { start, end } = utcMonthRangeFor();
   return { start, end };
 }
 
@@ -49,9 +50,10 @@ export async function getAdminDashboardSnapshot() {
     monthTotalSum,
     pickupMonth,
     deliveryMonth,
-    bestGroup,
     recentOrders,
     profitBrief,
+    todayIncome,
+    bestSellerMonth,
   ] = await Promise.all([
     prisma.order.count({
       where: {
@@ -84,13 +86,6 @@ export async function getAdminDashboardSnapshot() {
         fulfillmentMethod: FulfillmentMethod.DELIVERY,
       },
     }),
-    prisma.orderItem.groupBy({
-      by: ["productId"],
-      where: { productId: { not: null } },
-      _sum: { quantity: true },
-      orderBy: { _sum: { quantity: "desc" } },
-      take: 1,
-    }),
     prisma.order.findMany({
       take: 5,
       where: { archivedAt: null },
@@ -107,22 +102,13 @@ export async function getAdminDashboardSnapshot() {
       },
     }),
     getMonthProfitBriefUtc(),
+    getTodayIncome(),
+    getBestSellerForRange(monthStart, monthEnd),
   ]);
 
-  let bestSeller: { label: string; units: number } | null = null;
-  const top = bestGroup[0];
-  if (top?.productId && top._sum.quantity != null) {
-    const product = await prisma.product.findUnique({
-      where: { id: top.productId },
-      select: { nameEn: true },
-    });
-    if (product) {
-      bestSeller = {
-        label: product.nameEn,
-        units: top._sum.quantity,
-      };
-    }
-  }
+  const bestSeller = bestSellerMonth
+    ? { label: bestSellerMonth.nameEn, units: bestSellerMonth.quantity }
+    : null;
 
   return {
     ordersToday,
@@ -136,6 +122,7 @@ export async function getAdminDashboardSnapshot() {
     bestSeller,
     recentOrders,
     profitBrief,
+    todayIncome,
   };
 }
 

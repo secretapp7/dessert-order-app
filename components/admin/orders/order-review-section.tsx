@@ -10,7 +10,7 @@ type OrderReviewSectionProps = {
   orderId: string;
   orderStatus: OrderStatus;
   reviewUrl: string;
-  whatsAppReviewUrl: string;
+  whatsAppReviewUrl: string | null;
   reviewRequestedAtLabel: string | null;
   reviewedAtLabel: string | null;
 };
@@ -26,11 +26,13 @@ export function OrderReviewSection({
   const router = useRouter();
   const delivered = orderStatus === OrderStatus.DELIVERED;
   const reviewed = reviewedAtLabel != null;
+  const canWhatsApp = delivered && whatsAppReviewUrl != null;
 
-  async function onWhatsAppReviewRequest() {
-    await markReviewRequestedAction(orderId);
-    router.refresh();
-    window.open(whatsAppReviewUrl, "_blank", "noopener,noreferrer");
+  function onWhatsAppClick() {
+    void (async () => {
+      await markReviewRequestedAction(orderId);
+      router.refresh();
+    })();
   }
 
   return (
@@ -56,16 +58,22 @@ export function OrderReviewSection({
         </div>
       </dl>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <AdminCopyButton text={reviewUrl} label="Copy review link" />
-        {delivered ? (
-          <button
-            type="button"
-            onClick={() => void onWhatsAppReviewRequest()}
+        {canWhatsApp ? (
+          <a
+            href={whatsAppReviewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onWhatsAppClick}
             className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:brightness-110"
           >
             Send review request on WhatsApp
-          </button>
+          </a>
+        ) : delivered ? (
+          <p className="text-xs font-medium text-[color:var(--brand-burgundy-soft)]">
+            Customer phone is missing. Copy the review link manually.
+          </p>
         ) : (
           <span className="rounded-xl border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] px-4 py-2 text-xs font-medium text-[color:var(--muted-text)]">
             WhatsApp review request available after order is delivered

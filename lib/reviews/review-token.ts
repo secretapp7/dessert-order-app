@@ -63,6 +63,16 @@ Thank you for supporting our small home business 🤍
 Coco Treats`;
 }
 
+/** Click-to-chat URL for sending a review request to the customer's phone. */
+export function buildReviewRequestWhatsappUrl(
+  customerPhone: string,
+  message: string,
+): string | null {
+  const digits = customerPhone.replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  return `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(message)}`;
+}
+
 export async function ensureOrderReviewToken(orderId: string): Promise<string> {
   const existing = await prisma.order.findUnique({
     where: { id: orderId },

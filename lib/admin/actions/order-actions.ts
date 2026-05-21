@@ -13,10 +13,11 @@ import {
   orderStatusesSchema,
 } from "@/lib/admin/validation/order-admin";
 import { requireAdmin } from "@/lib/auth/admin-session";
+import { revalidateAdminReports } from "@/lib/admin/revalidate-reports";
 import { prisma } from "@/lib/db/prisma";
 
 function revalidateOrderPaths(orderId: string) {
-  revalidatePath("/admin");
+  revalidateAdminReports();
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
 }

@@ -10,6 +10,7 @@ import { offerCoreSchema } from "@/lib/admin/validation/offer-admin";
 import { requireAdmin } from "@/lib/auth/admin-session";
 import { prisma } from "@/lib/db/prisma";
 import { revalidateStorefrontPaths } from "@/lib/storefront/revalidate-storefront";
+import { revalidateAdminReports } from "@/lib/admin/revalidate-reports";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -66,8 +67,7 @@ function decimalsFromOffer(data: z.infer<typeof offerCoreSchema>) {
 function revalidateOfferPaths(id: string) {
   revalidatePath("/admin/offers");
   revalidatePath(`/admin/offers/${id}`);
-  revalidatePath("/admin");
-  revalidatePath("/admin/reports/profit");
+  revalidateAdminReports();
   revalidateStorefrontPaths();
 }
 
@@ -168,8 +168,7 @@ export async function deleteOfferAction(formData: FormData): Promise<ActionResul
     await prisma.offer.delete({ where: { id } });
     revalidatePath("/admin/offers");
     revalidatePath(`/admin/offers/${id}`);
-    revalidatePath("/admin");
-    revalidatePath("/admin/reports/profit");
+    revalidateAdminReports();
     revalidateStorefrontPaths();
     return { ok: true };
   } catch (e) {

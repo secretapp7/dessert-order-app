@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 
 import type { AdminFormState } from "@/lib/admin/admin-form-state";
+import { revalidateAdminReports } from "@/lib/admin/revalidate-reports";
 import { expenseCoreSchema, expenseVoidSchema } from "@/lib/admin/validation/expense-admin";
 import { requireAdmin } from "@/lib/auth/admin-session";
 import { prisma } from "@/lib/db/prisma";
@@ -23,8 +24,7 @@ function friendlyErr(e: unknown): string {
 function revalidateExpensePaths(id: string) {
   revalidatePath("/admin/expenses");
   revalidatePath(`/admin/expenses/${id}`);
-  revalidatePath("/admin");
-  revalidatePath("/admin/reports/profit");
+  revalidateAdminReports();
 }
 
 function parseExpense(formData: FormData) {
@@ -133,8 +133,7 @@ export async function deleteExpenseAction(formData: FormData): Promise<ActionRes
     await prisma.expense.delete({ where: { id } });
     revalidatePath("/admin/expenses");
     revalidatePath(`/admin/expenses/${id}`);
-    revalidatePath("/admin");
-    revalidatePath("/admin/reports/profit");
+    revalidateAdminReports();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: friendlyErr(e) };
