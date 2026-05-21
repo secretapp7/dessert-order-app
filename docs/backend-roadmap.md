@@ -2,6 +2,14 @@
 
 ## Current phase
 
+**Phase 11 — Final polish, testing, cleanup & launch readiness (completed)**
+
+- **Route audit:** All public routes (`/`, `/menu`, `/products/[slug]`, `/order`, `/contact`, `/review/[publicId]`) and admin routes build and compile; admin shell protected via middleware + `requireAdmin()`; CSV export and image upload require session.
+- **Docs:** `docs/launch-checklist.md` (step-by-step QA), `docs/cleanup-guide.md` (safe test data handling), updated `README.md`.
+- **Security pass:** Server-only env for `DATABASE_URL`, admin auth, Blob token; `NEXT_PUBLIC_SITE_URL` safe fallback; review route token-gated; no stack traces in UI.
+- **Build/lint:** Unused import cleanup; remaining warnings documented (admin `<img>` thumb, Next.js middleware→proxy deprecation).
+- **Seed safety:** Documented — re-run seed overwrites static catalog slugs; use only on empty DB (see cleanup guide).
+
 **Phase 10 — Reports, export & income dashboard (completed)**
 
 - **Routes:** `/admin/reports` (hub), `/admin/reports/monthly`, `/admin/reports/profit` (upgraded), `/admin/reports/export`, plus protected CSV routes under `/admin/reports/export/{orders|order-items|expenses|profit|products}`.
@@ -142,7 +150,6 @@ Whenever `Expense` void columns or shape changes ship, rerun **generate + push**
 
 ## Next / deferred
 
-- Admin CRUD for **Reviews** / **global Settings** (`/admin/reviews`, `/admin/settings` placeholders remain).
-- Optional Next.js middleware → proxy wording updates when framework guidance changes again.
-- **Storefront DB sync**: replace static catalog with Prisma-fed menu + CDN images.
+- Optional Next.js **middleware → proxy** migration when framework guidance stabilises (deprecation warning only; auth still works).
 - Payments, richer customer portal, disciplined `migrate` pipeline for Neon long term.
+- Replace admin `<img>` previews with `next/image` if Blob/CDN loader is configured (cosmetic lint warning today).

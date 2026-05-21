@@ -142,3 +142,9 @@ npm run prisma:push
 ```
 
 Additive nullable columns preserve existing orders; destructive operations still require deliberate SQL/migrate planning.
+
+## Seed script (`npm run prisma:seed`)
+
+- **Safe on empty DB** — creates categories, products, sizes, images, default settings, availability defaults, and static reviews (skip if ID exists).
+- **Not safe after live admin edits** — re-seed **upserts** product/category rows from static files and **replaces** product images and sizes for seeded slugs. Business settings use `skipDuplicates` only.
+- **Production:** run seed once at initial setup; never as routine cleanup. See `docs/cleanup-guide.md`.

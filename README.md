@@ -1,36 +1,166 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coco Treats — Dessert order app
 
-## Getting Started
+Mobile-first bilingual (English / Arabic) storefront for **Coco Treats** in Muscat. Customers browse the menu, place pickup or delivery orders, and continue on **WhatsApp**. Orders are saved to **PostgreSQL** before WhatsApp opens. An **admin dashboard** manages catalog, orders, production, availability, expenses, reports, reviews, and settings.
 
-First, run the development server:
+---
+
+## Main features
+
+### Customer app
+
+- Home, menu, product detail, order form, contact page
+- English / Arabic with RTL support
+- Catalog from Neon (fallback to static data if DB empty)
+- Sold-out and hidden product rules
+- Date availability, capacity limits, closed dates
+- Post-delivery review links (`/review/[publicId]?token=…`)
+
+### Admin dashboard (`/admin`)
+
+- Login (bcrypt + JWT session cookie)
+- Orders, production board, products, categories, offers
+- Expenses and profit / monthly reports + CSV export
+- Availability and capacity management
+- Reviews (approve customer submissions)
+- Business settings (contact, copy, notes)
+- Image upload via Vercel Blob (optional)
+
+---
+
+## Local setup
+
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL (e.g. [Neon](https://neon.tech))
+- npm
+
+### Install
+
+```bash
+npm install
+cp .env.example .env.local
+# Edit .env.local with your values
+```
+
+### Database
+
+```bash
+npm run prisma:generate
+npm run prisma:push
+npm run prisma:seed   # optional — only on empty DB; see docs/cleanup-guide.md
+```
+
+### Run
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Customer app: [http://localhost:3000](http://localhost:3000)
+- Admin: [http://localhost:3000/admin](http://localhost:3000/admin)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment variables
 
-## Learn More
+Copy from `.env.example`. Never commit real secrets.
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string (server-only) |
+| `NEXT_PUBLIC_SITE_URL` | Public site URL for review links (no trailing slash) |
+| `ADMIN_EMAIL` | Admin login email |
+| `ADMIN_PASSWORD_HASH` | bcrypt hash of admin password (server-only) |
+| `ADMIN_SESSION_SECRET` | JWT signing secret, 32+ chars (server-only) |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob read-write token for admin uploads (optional, server-only) |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Admin password hash
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Generate locally (example):
 
-## Deploy on Vercel
+```bash
+node -e "const b=require('bcryptjs'); console.log(b.hashSync('YOUR_PASSWORD', 12));"
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Session secret
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+openssl rand -hex 32
+```
+
+---
+
+## Prisma commands
+
+| Command | Purpose |
+|---------|---------|
+| `npm run prisma:generate` | Regenerate Prisma client |
+| `npm run prisma:push` | Push schema to database |
+| `npm run prisma:seed` | Seed catalog/settings (safe only on empty DB) |
+| `npm run prisma:studio` | Open Prisma Studio |
+
+---
+
+## Vercel deployment
+
+1. Connect the repo to Vercel.
+2. Set all environment variables from `.env.example`.
+3. Set `NEXT_PUBLIC_SITE_URL` to your production domain.
+4. Deploy — `postinstall` runs `prisma generate`.
+5. Run `prisma db push` against production Neon once (or use a migration pipeline later).
+6. Seed **only** if the production catalog is empty.
+
+### Image upload
+
+Create a Vercel Blob store and add `BLOB_READ_WRITE_TOKEN`. Without it, admins can paste `/images/…` paths or external URLs.
+
+---
+
+## Business flow overview
+
+1. Customer builds order on `/order` (pickup or delivery, date, items).
+2. Server validates availability and persists `Customer`, `Order`, `OrderItem`.
+3. Client opens WhatsApp with a pre-filled message (one language).
+4. Admin manages order on `/admin/orders`, production on `/admin/production`.
+5. After delivery, admin sends review link via WhatsApp; customer submits on `/review/…`.
+6. Admin approves review → appears on storefront.
+7. Reports and CSV export use persisted order and expense data.
+
+---
+
+## Scripts
+
+```bash
+npm run dev          # Development server
+npm run build        # Production build
+npm run start        # Production server
+npm run lint         # ESLint
+```
+
+---
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [docs/launch-checklist.md](docs/launch-checklist.md) | Pre-launch testing steps |
+| [docs/cleanup-guide.md](docs/cleanup-guide.md) | Safe test data cleanup |
+| [docs/backend-roadmap.md](docs/backend-roadmap.md) | Phase history and architecture |
+| [docs/admin-management-rules.md](docs/admin-management-rules.md) | Admin CRUD safety rules |
+
+---
+
+## Tech stack
+
+- Next.js 16 (App Router)
+- React 19, Tailwind CSS 4
+- Prisma + PostgreSQL (Neon)
+- Vercel Blob (optional uploads)
+- jose (JWT), bcryptjs
+
+---
+
+## License
+
+Private — Coco Treats internal use.
