@@ -239,6 +239,10 @@ model Order {
   /// When set, the order is hidden from default admin lists unless “Archived” filter is chosen.
   archivedAt           DateTime?
   adminNote            String?            @db.Text
+  /// Secure token for customer review link (`/review/{publicId}?token=…`).
+  reviewToken          String?            @unique
+  reviewRequestedAt    DateTime?
+  reviewedAt           DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -345,11 +349,16 @@ model Review {
   id               String       @id @default(cuid())
   productId        String?
   customerName     String
+  customerNameAr   String?
   customerInitials String
   rating           Int
   textEn           String       @db.Text
   textAr           String?      @db.Text
+  source           String?
   verifiedOrder    Boolean      @default(false)
+  featured         Boolean      @default(false)
+  sortOrder        Int          @default(0)
+  reviewDate       DateTime?    @db.Date
   status           ReviewStatus @default(PENDING)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -358,6 +367,8 @@ model Review {
 
   @@index([productId])
   @@index([status])
+  @@index([featured])
+  @@index([sortOrder])
   @@map("reviews")
 }
 

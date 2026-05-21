@@ -12,6 +12,7 @@ import {
 } from "./storefront-mappers";
 import type { MenuCategory } from "@/data/products";
 import type { StorefrontMenuData, StorefrontProduct } from "./types";
+import { getStorefrontRatingSummaries } from "./storefront-reviews";
 
 const PUBLIC_PRODUCT_INCLUDE = {
   category: { select: { slug: true, nameEn: true, nameAr: true, isActive: true } },
@@ -73,6 +74,13 @@ export async function getStorefrontProductBySlug(
   return mapDbProductToStorefront(row);
 }
 
+export async function getProductDbIdBySlug(slug: string): Promise<string | null> {
+  const count = await countPublicProducts();
+  if (count === 0) return null;
+  const row = await prisma.product.findUnique({ where: { slug }, select: { id: true } });
+  return row?.id ?? null;
+}
+
 export function buildMenuCategoryIds(products: StorefrontProduct[]): Array<MenuCategory | "all"> {
   const slugs = new Set(products.map((p) => p.menuCategory));
   const ids: Array<MenuCategory | "all"> = ["all"];
@@ -84,11 +92,15 @@ export function buildMenuCategoryIds(products: StorefrontProduct[]): Array<MenuC
 }
 
 export async function getStorefrontMenuData(): Promise<StorefrontMenuData> {
-  const { products, dataSource } = await listStorefrontProducts();
+  const [{ products, dataSource }, ratingSummaries] = await Promise.all([
+    listStorefrontProducts(),
+    getStorefrontRatingSummaries(),
+  ]);
   return {
     products,
     categoryIds: buildMenuCategoryIds(products),
     dataSource,
+    ratingSummaries,
   };
 }
 

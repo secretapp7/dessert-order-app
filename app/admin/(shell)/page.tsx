@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { getAvailabilityDashboardBrief } from "@/lib/admin/data/availability-dashboard";
 import { getProductionDashboardSummary } from "@/lib/admin/data/production-queries";
+import { getReviewDashboardSummary } from "@/lib/admin/data/review-queries";
 import { getAdminDashboardSnapshot } from "@/lib/admin/dashboard-data";
 
 function money(n: number) {
@@ -9,10 +10,11 @@ function money(n: number) {
 }
 
 export default async function AdminDashboardPage() {
-  const [data, avail, production] = await Promise.all([
+  const [data, avail, production, reviews] = await Promise.all([
     getAdminDashboardSnapshot(),
     getAvailabilityDashboardBrief(),
     getProductionDashboardSummary(),
+    getReviewDashboardSummary(),
   ]);
   const p = data.profitBrief;
 
@@ -56,6 +58,39 @@ export default async function AdminDashboardPage() {
             }
           />
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+            Reviews & testimonials
+          </h2>
+          <Link
+            href="/admin/reviews"
+            className="text-xs font-semibold text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+          >
+            Manage reviews
+          </Link>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <MiniStat title="Approved" value={String(reviews.approvedCount)} />
+          <MiniStat title="Pending" value={String(reviews.pendingCount)} />
+          <MiniStat title="Avg. rating (approved)" value={reviews.averageRating > 0 ? String(reviews.averageRating) : "—"} />
+        </div>
+        <p className="mt-2 text-[11px] text-[color:var(--muted-text)]">
+          Only approved reviews appear on the home page, menu cards, and product detail pages.
+          {reviews.pendingCount > 0 ? (
+            <>
+              {" "}
+              <Link
+                href="/admin/reviews?status=pending"
+                className="font-semibold text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+              >
+                {reviews.pendingCount} pending to review
+              </Link>
+            </>
+          ) : null}
+        </p>
       </section>
 
       <section className="grid gap-3 lg:grid-cols-2">

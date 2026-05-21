@@ -1,10 +1,11 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { PrismaClient, Prisma, ProductImageType } from "@prisma/client";
+import { PrismaClient, Prisma, ProductImageType, ReviewStatus } from "@prisma/client";
 
 import { translations } from "../config/translations";
 import { products as staticProducts } from "../data/products";
+import { reviews as staticReviews } from "../data/reviews";
 import { AVAILABILITY_KEYS } from "../lib/availability/availability-keys";
 import { getDefaultBusinessSettingValues } from "../lib/settings/defaults";
 import { ALL_BUSINESS_SETTING_KEYS } from "../lib/settings/settings-keys";
@@ -254,7 +255,36 @@ async function main() {
     skipDuplicates: true,
   });
 
-  console.log("Seed finished: categories, products, sizes, images, business_settings, availability defaults.");
+  const productsBySlug = new Map(
+    (await prisma.product.findMany({ select: { id: true, slug: true } })).map((p) => [p.slug, p.id]),
+  );
+
+  for (const r of staticReviews) {
+    const existing = await prisma.review.findUnique({ where: { id: r.id } });
+    if (existing) continue;
+
+    const productSlug = r.productId === "general" ? null : r.productId;
+    const productId = productSlug ? (productsBySlug.get(productSlug) ?? null) : null;
+
+    await prisma.review.create({
+      data: {
+        id: r.id,
+        productId,
+        customerName: r.customerName,
+        customerInitials: r.customerInitials,
+        rating: r.rating,
+        textEn: r.text.en,
+        textAr: r.text.ar,
+        source: "Manual",
+        verifiedOrder: r.verifiedOrder,
+        featured: r.rating >= 5,
+        sortOrder: 0,
+        status: ReviewStatus.APPROVED,
+      },
+    });
+  }
+
+  console.log("Seed finished: categories, products, sizes, images, business_settings, availability defaults, reviews (skip existing).");
 }
 
 main()

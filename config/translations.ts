@@ -45,6 +45,23 @@ type Translation = {
     whatCustomersSay: string;
     noReviewsYet: string;
   };
+  orderReview: {
+    pageTitle: string;
+    pageIntro: string;
+    nameLabel: string;
+    productLabel: string;
+    ratingLabel: string;
+    commentLabel: string;
+    commentPlaceholder: string;
+    submit: string;
+    successTitle: string;
+    successBody: string;
+    invalidTitle: string;
+    invalidBody: string;
+    invalidLink: string;
+    alreadyReviewedTitle: string;
+    alreadyReviewed: string;
+  };
   menu: {
     screenTitle: string;
   };
@@ -272,6 +289,23 @@ export const translations: Record<AppLanguage, Translation> = {
       verifiedOrder: "Verified order",
       whatCustomersSay: "What customers say",
       noReviewsYet: "No reviews yet",
+    },
+    orderReview: {
+      pageTitle: "Share your experience",
+      pageIntro: "Thank you for choosing Coco Treats. Your feedback helps us grow.",
+      nameLabel: "Your name",
+      productLabel: "Which dessert?",
+      ratingLabel: "Your rating",
+      commentLabel: "Your review",
+      commentPlaceholder: "Tell us what you loved…",
+      submit: "Submit review",
+      successTitle: "Thank you!",
+      successBody: "Your review was submitted and will appear soon.",
+      invalidTitle: "Link not available",
+      invalidBody: "This review link is invalid or has expired. If you need help, contact us on WhatsApp.",
+      invalidLink: "We could not submit your review. Please check the link or contact us.",
+      alreadyReviewedTitle: "Thank you",
+      alreadyReviewed: "We already received your review.",
     },
     menu: {
       screenTitle: "Menu",
@@ -520,6 +554,23 @@ export const translations: Record<AppLanguage, Translation> = {
       verifiedOrder: "طلب موثّق",
       whatCustomersSay: "ماذا يقول العملاء",
       noReviewsYet: "لا توجد تقييمات بعد",
+    },
+    orderReview: {
+      pageTitle: "شاركينا تجربتك",
+      pageIntro: "شكراً لاختيارك كوكو تريتس. رأيك يساعدنا نكبر.",
+      nameLabel: "اسمك",
+      productLabel: "أي حلى؟",
+      ratingLabel: "تقييمك",
+      commentLabel: "تعليقك",
+      commentPlaceholder: "احكيلنا شنو عجبك…",
+      submit: "إرسال التقييم",
+      successTitle: "شكراً لك!",
+      successBody: "تم إرسال تقييمك وسيظهر قريباً.",
+      invalidTitle: "الرابط غير متاح",
+      invalidBody: "رابط التقييم غير صالح أو منتهي. للمساعدة تواصلي معنا على واتساب.",
+      invalidLink: "تعذر إرسال التقييم. تأكدي من الرابط أو تواصلي معنا.",
+      alreadyReviewedTitle: "شكراً لك",
+      alreadyReviewed: "لقد استلمنا تقييمك مسبقاً.",
     },
     menu: {
       screenTitle: "القائمة",

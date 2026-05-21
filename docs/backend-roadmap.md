@@ -2,6 +2,21 @@
 
 ## Current phase
 
+**Phase 9B — Customer review submission (completed)**
+
+- **Public route:** `/review/{publicId}?token=…` — token-protected review form after delivery (no customer login).
+- **Order fields:** `reviewToken`, `reviewRequestedAt`, `reviewedAt` on `Order`; secure token generated on demand via `lib/reviews/review-token.ts`.
+- **Admin:** `/admin/orders/[id]` shows review status, copy link, and **Send review request on WhatsApp** (click-to-chat, manual send — no backend WhatsApp API).
+- **Flow:** Customer submission creates `Review` with `status: PENDING`, `verifiedOrder: true`, `source: "Order review"`; admin approves from `/admin/reviews`; public storefront unchanged until approved.
+- **Site URL:** `NEXT_PUBLIC_SITE_URL` for production review links (fallback `http://localhost:3000`).
+
+**Phase 9 — Reviews management (completed)**
+
+- **Routes:** `/admin/reviews`, `/admin/reviews/new`, `/admin/reviews/[id]` — admin CRUD for customer testimonials.
+- **Data:** `Review` model with bilingual text, optional product link, `status` (`APPROVED` / `PENDING` / `HIDDEN`), `featured`, `sortOrder`, optional `source` and `reviewDate`.
+- **Public integration:** Home testimonials, menu/product rating summaries, and product detail reviews load approved rows from PostgreSQL via `lib/storefront/storefront-reviews.ts`; static `data/reviews.ts` remains fallback when zero approved reviews exist.
+- **Rules:** Only `APPROVED` reviews appear publicly; pending/hidden never show. Reviews are marketing content — hard delete allowed with customer-name confirmation. Future phase may add customer-submitted or verified-order reviews.
+
 **Phase 8 — Admin settings page (completed)**
 
 - **Route:** `/admin/settings` — edit `BusinessSetting` key/value rows (identity, contact channels, customer notes, homepage + contact copy).

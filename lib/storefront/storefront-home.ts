@@ -3,6 +3,10 @@ import "server-only";
 import { getFeaturedPresentation } from "@/data/products";
 
 import { getFeaturedHomeOffer } from "./storefront-offers";
+import {
+  getFeaturedStorefrontReviews,
+  getStorefrontRatingSummaries,
+} from "./storefront-reviews";
 import { listStorefrontProducts } from "./storefront-products";
 import type { StorefrontHomeData, StorefrontProduct } from "./types";
 
@@ -41,6 +45,11 @@ export async function getStorefrontHomeData(): Promise<StorefrontHomeData> {
     : null;
 
   const dbOffer = await getFeaturedHomeOffer();
+  const [featuredReviews, ratingSummaries] = await Promise.all([
+    getFeaturedStorefrontReviews(2),
+    getStorefrontRatingSummaries(),
+  ]);
+  const globalRating = ratingSummaries.global ?? { average: 0, count: 0 };
 
   return {
     signatures,
@@ -48,5 +57,8 @@ export async function getStorefrontHomeData(): Promise<StorefrontHomeData> {
     featuredPresentation,
     offer: dbOffer,
     offerIsFromDatabase: dbOffer != null,
+    featuredReviews,
+    globalRating,
+    ratingSummaries,
   };
 }

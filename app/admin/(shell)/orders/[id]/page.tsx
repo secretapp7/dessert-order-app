@@ -3,10 +3,16 @@ import { notFound } from "next/navigation";
 
 import { AdminCopyButton } from "@/components/admin/copy-button";
 import { OrderAdminForms } from "@/components/admin/orders/order-admin-forms";
+import { OrderReviewSection } from "@/components/admin/orders/order-review-section";
 import { FulfillmentMethod, OrderStatus } from "@prisma/client";
 
 import { getAdminOrderById } from "@/lib/admin/dashboard-data";
 import { decimalToFormString } from "@/lib/admin/admin-serialize";
+import {
+  buildOrderReviewUrl,
+  buildReviewWhatsAppMessage,
+  ensureOrderReviewToken,
+} from "@/lib/reviews/review-token";
 import { brand } from "@/config/brand";
 
 function money(n: number) {
@@ -25,6 +31,15 @@ export default async function AdminOrderDetailPage({
   const { id } = await params;
   const order = await getAdminOrderById(id);
   if (!order) notFound();
+
+  const reviewToken = await ensureOrderReviewToken(order.id);
+  const reviewUrl = buildOrderReviewUrl({ publicId: order.publicId, reviewToken });
+  const reviewWhatsAppMessage = buildReviewWhatsAppMessage(
+    order.customerName,
+    reviewUrl,
+    order.language,
+  );
+  const whatsAppReviewUrl = `https://wa.me/${digitsOnly(order.customerPhone)}?text=${encodeURIComponent(reviewWhatsAppMessage)}`;
 
   const waCustomer = `https://wa.me/${digitsOnly(order.customerPhone)}`;
   const mapsLink = order.mapsLink?.trim();
@@ -96,6 +111,19 @@ export default async function AdminOrderDetailPage({
           deliveryFeeOmr:
             order.deliveryFeeOmr != null ? decimalToFormString(order.deliveryFeeOmr) : null,
         }}
+      />
+
+      <OrderReviewSection
+        orderId={order.id}
+        orderStatus={order.orderStatus}
+        reviewUrl={reviewUrl}
+        whatsAppReviewUrl={whatsAppReviewUrl}
+        reviewRequestedAtLabel={
+          order.reviewRequestedAt ? order.reviewRequestedAt.toISOString().slice(0, 19).replace("T", " ") : null
+        }
+        reviewedAtLabel={
+          order.reviewedAt ? order.reviewedAt.toISOString().slice(0, 19).replace("T", " ") : null
+        }
       />
 
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4">

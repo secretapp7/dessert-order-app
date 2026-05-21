@@ -1,4 +1,5 @@
 import type { LocalizedText, MenuCategory, Product, ProductImages, ProductImageAlt } from "@/data/products";
+import type { ProductRatingSummary, StorefrontReview } from "@/lib/storefront/review-display";
 
 /** Public catalog visibility — HIDDEN never appears on the storefront. */
 export type StorefrontProductStatus = "ACTIVE" | "SOLD_OUT";
@@ -23,12 +24,16 @@ export type StorefrontHomeData = {
   featuredPresentation: { src: string; alt: LocalizedText } | null;
   offer: StorefrontOffer | null;
   offerIsFromDatabase: boolean;
+  featuredReviews: StorefrontReview[];
+  globalRating: ProductRatingSummary;
+  ratingSummaries: Record<string, ProductRatingSummary>;
 };
 
 export type StorefrontMenuData = {
   products: StorefrontProduct[];
   categoryIds: Array<MenuCategory | "all">;
   dataSource: "database" | "static";
+  ratingSummaries: Record<string, ProductRatingSummary>;
 };
 
 export type { ProductImages, ProductImageAlt, LocalizedText, MenuCategory };
