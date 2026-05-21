@@ -29,7 +29,6 @@ export function HomePageClient({
   featured,
   featuredPresentation,
   offer,
-  offerIsFromDatabase,
   featuredReviews,
   globalRating,
   ratingSummaries,
@@ -52,10 +51,6 @@ export function HomePageClient({
     Math.min(...p.sizes.map((s) => s.priceOmr));
 
   const productRating = (slug: string) => ratingForProductSlug(ratingSummaries, slug);
-  const offerTitle = offer?.title[language] ?? t.offers.launchBoxTitle;
-  const offerBody = offer?.description[language] ?? t.offers.launchBoxBody;
-  const offerPrice =
-    offer != null ? `${offer.priceOmr.toFixed(2)} ${settings.currency}` : null;
 
   return (
     <AppShell>
@@ -225,43 +220,43 @@ export function HomePageClient({
             </motion.section>
           ) : null}
 
-          <motion.section
-            variants={staggerItemVariants(reduced)}
-            className="overflow-hidden rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] p-3.5 text-[color:var(--foreground)] shadow-[0_10px_28px_-18px_rgba(74,6,20,0.12)] ring-1 ring-[color:var(--brand-gold-soft)]/20"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--brand-gold-muted)]">
-                  {offerTitle}
-                </p>
-                <p className="mt-1.5 max-w-[16rem] text-[12px] font-medium leading-snug text-[color:var(--muted-text)]">
-                  {offerBody}
-                  {offerPrice ? (
+          {offer ? (
+            <motion.section
+              variants={staggerItemVariants(reduced)}
+              className="overflow-hidden rounded-[1.25rem] border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] p-3.5 text-[color:var(--foreground)] shadow-[0_10px_28px_-18px_rgba(74,6,20,0.12)] ring-1 ring-[color:var(--brand-gold-soft)]/20"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[color:var(--brand-gold-muted)]">
+                    {offer.title[language]}
+                  </p>
+                  <p className="mt-1.5 max-w-[16rem] text-[12px] font-medium leading-snug text-[color:var(--muted-text)]">
+                    {offer.description[language]}
                     <span className="mt-1 block font-semibold text-[color:var(--brand-burgundy)]">
-                      {offerPrice}
+                      {offer.priceOmr.toFixed(2)} {settings.currency}
                     </span>
-                  ) : null}
-                </p>
-              </div>
-              {offer?.imageUrl ? (
-                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border border-[color:var(--brand-gold)]/45 bg-[color:var(--card-beige)] shadow-inner">
-                  <OfferThumb src={offer.imageUrl} alt={offer.title} language={language} />
+                  </p>
                 </div>
-              ) : (
-                <motion.div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--brand-gold)]/45 bg-[color:var(--card-beige)] text-base text-[color:var(--brand-burgundy)] shadow-inner">
-                  ✦
-                </motion.div>
-              )}
-            </div>
-            <motion.div whileTap={tapScale} transition={{ duration: 0.15 }} className="mt-3">
-              <Link
-                href={offerIsFromDatabase ? "/order" : "/menu"}
-                className="flex min-h-10 w-full items-center justify-center rounded-xl border border-[color:var(--brand-gold)]/50 bg-[color:var(--brand-burgundy)] text-[11px] font-semibold text-[color:var(--card-cream)] shadow-md hover:brightness-105 focus-visible:outline-none active:brightness-95"
-              >
-                {offerIsFromDatabase ? t.home.orderNow : t.offers.browseOffers}
-              </Link>
-            </motion.div>
-          </motion.section>
+                {offer.imageUrl ? (
+                  <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-2xl border border-[color:var(--brand-gold)]/45 bg-[color:var(--card-beige)] shadow-inner">
+                    <OfferThumb src={offer.imageUrl} alt={offer.title} language={language} />
+                  </div>
+                ) : (
+                  <motion.div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[color:var(--brand-gold)]/45 bg-[color:var(--card-beige)] text-base text-[color:var(--brand-burgundy)] shadow-inner">
+                    ✦
+                  </motion.div>
+                )}
+              </div>
+              <motion.div whileTap={tapScale} transition={{ duration: 0.15 }} className="mt-3">
+                <Link
+                  href="/order"
+                  className="flex min-h-10 w-full items-center justify-center rounded-xl border border-[color:var(--brand-gold)]/50 bg-[color:var(--brand-burgundy)] text-[11px] font-semibold text-[color:var(--card-cream)] shadow-md hover:brightness-105 focus-visible:outline-none active:brightness-95"
+                >
+                  {t.home.orderNow}
+                </Link>
+              </motion.div>
+            </motion.section>
+          ) : null}
 
           <motion.section
             variants={staggerItemVariants(reduced)}

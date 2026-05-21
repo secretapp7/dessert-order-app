@@ -53,7 +53,7 @@
 - **Fallback:** If no `ACTIVE`/`SOLD_OUT` rows exist in Postgres, public pages use `data/products.ts` (kept as emergency/reference; not deleted).
 - **Pages:** `/`, `/menu`, `/products/[slug]`, `/order` are server-fetched (`dynamic = force-dynamic`) and pass serialized catalog props to client UI.
 - **Rules:** `HIDDEN` never shown; `SOLD_OUT` visible with labels but not orderable; order `persistOrder` resolves DB product slug + size cuid first, static fallback second; snapshots use DB labels/prices/costs.
-- **Offers:** Home/menu promo blocks prefer `Offer.featuredOnHome` when active and in date range; otherwise static Launch Box copy.
+- **Offers:** Home/menu promo blocks show `Offer.featuredOnHome` only when active and in date range; no static fallback when the offers table is empty.
 - **Revalidation:** Product/category/offer admin actions call `revalidateStorefrontPaths()` for `/`, `/menu`, `/order`, and `/products/[slug]` when known.
 
 **Phase 5 — Availability & daily capacity (completed)**

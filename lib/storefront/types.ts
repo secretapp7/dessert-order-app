@@ -23,7 +23,6 @@ export type StorefrontHomeData = {
   featured: StorefrontProduct | null;
   featuredPresentation: { src: string; alt: LocalizedText } | null;
   offer: StorefrontOffer | null;
-  offerIsFromDatabase: boolean;
   featuredReviews: StorefrontReview[];
   globalRating: ProductRatingSummary;
   ratingSummaries: Record<string, ProductRatingSummary>;

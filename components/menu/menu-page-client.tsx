@@ -52,11 +52,6 @@ export function MenuPageClient({ products, categoryIds, homeOffer, ratingSummari
     return list;
   }, [activeCategory, products, query]);
 
-  const offerTitle = homeOffer?.title[language] ?? t.offers.launchBoxTitle;
-  const offerBody = homeOffer?.description[language] ?? t.offers.launchBoxBody;
-  const offerPrice =
-    homeOffer != null ? `${homeOffer.priceOmr.toFixed(2)} ${brand.currency}` : null;
-
   return (
     <AppShell>
       <ScreenEnter>
@@ -114,37 +109,37 @@ export function MenuPageClient({ products, categoryIds, homeOffer, ratingSummari
             </motion.div>
           </motion.section>
 
-          <motion.section
-            variants={staggerItemVariants(reduced)}
-            className="overflow-hidden rounded-[1.2rem] border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] p-3.5 shadow-[0_10px_28px_-18px_rgba(74,6,20,0.1)] ring-1 ring-[color:var(--brand-gold-soft)]/25"
-          >
-            <motion.div variants={staggerItemVariants(reduced)} className="flex items-start gap-2.5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[color:var(--brand-gold)]/45 bg-[color:var(--card-beige)] text-sm text-[color:var(--brand-burgundy)] shadow-inner">
-                ✦
-              </span>
-              <motion.div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--brand-gold-muted)]">
-                  {offerTitle}
-                </p>
-                <p className="mt-1 text-[11px] font-medium leading-snug text-[color:var(--muted-text)]">
-                  {offerBody}
-                  {offerPrice ? (
+          {homeOffer ? (
+            <motion.section
+              variants={staggerItemVariants(reduced)}
+              className="overflow-hidden rounded-[1.2rem] border border-[color:var(--border-soft)] bg-[color:var(--card-cream)] p-3.5 shadow-[0_10px_28px_-18px_rgba(74,6,20,0.1)] ring-1 ring-[color:var(--brand-gold-soft)]/25"
+            >
+              <motion.div variants={staggerItemVariants(reduced)} className="flex items-start gap-2.5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[color:var(--brand-gold)]/45 bg-[color:var(--card-beige)] text-sm text-[color:var(--brand-burgundy)] shadow-inner">
+                  ✦
+                </span>
+                <motion.div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--brand-gold-muted)]">
+                    {homeOffer.title[language]}
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium leading-snug text-[color:var(--muted-text)]">
+                    {homeOffer.description[language]}
                     <span className="mt-1 block font-semibold text-[color:var(--brand-burgundy)]">
-                      {offerPrice}
+                      {homeOffer.priceOmr.toFixed(2)} {brand.currency}
                     </span>
-                  ) : null}
-                </p>
-                <motion.span whileTap={tapScale} className="mt-2 inline-block">
-                  <Link
-                    href="/order"
-                    className="inline-flex min-h-9 items-center rounded-full bg-[color:var(--brand-burgundy)] px-4 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--card-cream)] shadow-md ring-1 ring-[color:var(--brand-gold)]/40 active:brightness-95"
-                  >
-                    {t.home.orderNow}
-                  </Link>
-                </motion.span>
+                  </p>
+                  <motion.span whileTap={tapScale} className="mt-2 inline-block">
+                    <Link
+                      href="/order"
+                      className="inline-flex min-h-9 items-center rounded-full bg-[color:var(--brand-burgundy)] px-4 text-[10px] font-semibold uppercase tracking-wide text-[color:var(--card-cream)] shadow-md ring-1 ring-[color:var(--brand-gold)]/40 active:brightness-95"
+                    >
+                      {t.home.orderNow}
+                    </Link>
+                  </motion.span>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          </motion.section>
+            </motion.section>
+          ) : null}
 
           <motion.section variants={staggerItemVariants(reduced)}>
             <div className="flex flex-col gap-3">

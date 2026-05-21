@@ -56,7 +56,6 @@ export async function getStorefrontHomeData(): Promise<StorefrontHomeData> {
     featured,
     featuredPresentation,
     offer: dbOffer,
-    offerIsFromDatabase: dbOffer != null,
     featuredReviews,
     globalRating,
     ratingSummaries,
