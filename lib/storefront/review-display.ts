@@ -1,6 +1,6 @@
 import type { AppLanguage } from "@/config/translations";
 
-/** Shared review shape for ReviewCard and public pages (DB or static fallback). */
+/** Shared review shape for ReviewCard and public pages (approved DB reviews only). */
 export type StorefrontReview = {
   id: string;
   customerName: string;

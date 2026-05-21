@@ -288,7 +288,7 @@ export const translations: Record<AppLanguage, Translation> = {
       reviewsWord: "reviews",
       verifiedOrder: "Verified order",
       whatCustomersSay: "What customers say",
-      noReviewsYet: "No reviews yet",
+      noReviewsYet: "Customer reviews will appear here soon.",
     },
     orderReview: {
       pageTitle: "Share your experience",
@@ -553,7 +553,7 @@ export const translations: Record<AppLanguage, Translation> = {
       reviewsWord: "تقييم",
       verifiedOrder: "طلب موثّق",
       whatCustomersSay: "ماذا يقول العملاء",
-      noReviewsYet: "لا توجد تقييمات بعد",
+      noReviewsYet: "ستظهر تقييمات العملاء هنا قريباً.",
     },
     orderReview: {
       pageTitle: "شاركينا تجربتك",

@@ -2,13 +2,6 @@ import "server-only";
 
 import { ReviewStatus, type Review } from "@prisma/client";
 
-import {
-  getAverageRating as staticAverage,
-  getFeaturedReviews as staticFeatured,
-  getReviewCount as staticCount,
-  getReviewsForProductDetail as staticProductReviews,
-  type Review as StaticReview,
-} from "@/data/reviews";
 import { prisma } from "@/lib/db/prisma";
 import {
   formatReviewDateLabel,
@@ -19,19 +12,6 @@ import {
 type ReviewWithProduct = Review & {
   product: { slug: string } | null;
 };
-
-function mapStaticReview(r: StaticReview): StorefrontReview {
-  return {
-    id: r.id,
-    customerName: r.customerName,
-    customerInitials: r.customerInitials,
-    rating: r.rating,
-    productSlug: r.productId === "general" ? null : r.productId,
-    text: { en: r.text.en, ar: r.text.ar },
-    dateLabel: { en: r.dateLabel.en, ar: r.dateLabel.ar },
-    verifiedOrder: r.verifiedOrder,
-  };
-}
 
 function mapDbReview(row: ReviewWithProduct): StorefrontReview {
   const when = row.reviewDate ?? row.createdAt;
@@ -60,7 +40,7 @@ async function countApprovedReviews(): Promise<number> {
 export async function getFeaturedStorefrontReviews(limit: number): Promise<StorefrontReview[]> {
   const approvedCount = await countApprovedReviews();
   if (approvedCount === 0) {
-    return staticFeatured(limit).map(mapStaticReview);
+    return [];
   }
 
   const rows = await prisma.review.findMany({
@@ -86,11 +66,7 @@ export async function getProductStorefrontReviews(
   limit: number,
 ): Promise<StorefrontReview[]> {
   const approvedCount = await countApprovedReviews();
-
   if (approvedCount === 0) {
-    if (productSlug === "tiramisu" || productSlug === "jelly-cheesecake") {
-      return staticProductReviews(productSlug, limit).map(mapStaticReview);
-    }
     return [];
   }
 
@@ -125,13 +101,7 @@ export async function getProductStorefrontReviews(
 export async function getStorefrontRatingSummaries(): Promise<Record<string, ProductRatingSummary>> {
   const approvedCount = await countApprovedReviews();
   if (approvedCount === 0) {
-    const slugs = ["tiramisu", "jelly-cheesecake"] as const;
-    const out: Record<string, ProductRatingSummary> = {};
-    for (const slug of slugs) {
-      out[slug] = { average: staticAverage(slug), count: staticCount(slug) };
-    }
-    out.global = { average: staticAverage(), count: staticCount() };
-    return out;
+    return {};
   }
 
   const rows = await prisma.review.findMany({

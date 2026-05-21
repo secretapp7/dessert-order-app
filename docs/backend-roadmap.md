@@ -29,7 +29,7 @@
 
 - **Routes:** `/admin/reviews`, `/admin/reviews/new`, `/admin/reviews/[id]` — admin CRUD for customer testimonials.
 - **Data:** `Review` model with bilingual text, optional product link, `status` (`APPROVED` / `PENDING` / `HIDDEN`), `featured`, `sortOrder`, optional `source` and `reviewDate`.
-- **Public integration:** Home testimonials, menu/product rating summaries, and product detail reviews load approved rows from PostgreSQL via `lib/storefront/storefront-reviews.ts`; static `data/reviews.ts` remains fallback when zero approved reviews exist.
+- **Public integration:** Home testimonials, menu/product rating summaries, and product detail reviews load **approved rows only** from PostgreSQL via `lib/storefront/storefront-reviews.ts`. Zero approved reviews → no public ratings or cards (empty-state message on home). `data/reviews.ts` is used by seed only.
 - **Rules:** Only `APPROVED` reviews appear publicly; pending/hidden never show. Reviews are marketing content — hard delete allowed with customer-name confirmation. Future phase may add customer-submitted or verified-order reviews.
 
 **Phase 8 — Admin settings page (completed)**

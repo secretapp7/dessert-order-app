@@ -16,7 +16,7 @@ This document records **safe defaults** for catalog and operations data. It comp
 | **Availability / capacity** | Global settings; closed datetime ranges; per-day overrides | Prefer **Deactivate** on overrides / closed rows vs deleting history | Capacity counts **non-cancelled** orders by matching **`dateNeeded`** UTC day; archive **does not** free a slot; WhatsApp opens only after successful persist + availability gate. |
 | **Production board** | N/A (read-only planning view) | N/A | `/admin/production` groups non-cancelled orders by UTC `dateNeeded`; archived orders still count; print sheet is browser-based. |
 | **Settings** | Business identity, contact channels, customer-facing copy | N/A | `BusinessSetting` key/value; falls back to static config; secrets stay in env. |
-| **Reviews** | Customer name (EN/AR optional), rating, bilingual comment, optional product, source, featured/sort, approve/hide | **Delete** allowed (customer-name confirmation) — marketing content, not financial records | Only **`APPROVED`** rows appear on storefront; static `data/reviews.ts` fallback when DB has zero approved reviews. **Customer submissions** via `/review/{publicId}?token=…` → `PENDING` until approved; one review per order (`Order.reviewedAt`). |
+| **Reviews** | Customer name (EN/AR optional), rating, bilingual comment, optional product, source, featured/sort, approve/hide | **Delete** allowed (customer-name confirmation) — marketing content, not financial records | Only **`APPROVED`** rows appear on storefront; zero approved reviews shows an empty-state message (no static testimonials). **Customer submissions** via `/review/{publicId}?token=…` → `PENDING` until approved; one review per order (`Order.reviewedAt`). |
 
 **Hard deletes that are comparatively safe**: empty categories; product/size rows never referenced by `order_items`; product images (media records only); offers while unreferenced by orders.
 
@@ -116,7 +116,7 @@ This document records **safe defaults** for catalog and operations data. It comp
 - Operational states: **`APPROVED`** (public), **`PENDING`** (admin only), **`HIDDEN`** (admin only).
 - **Featured** + **sortOrder** control home/testimonial ordering; optional **productId** links reviews to a catalog item.
 - **Hard delete OK**: testimonials are marketing content, not financial records — require exact customer-name confirmation + irrevocable checkbox.
-- Public pages read approved reviews from PostgreSQL; if zero approved rows exist, static `data/reviews.ts` supplies fallback ratings/testimonials until admin content is live.
+- Public pages read **approved reviews only** from PostgreSQL via `lib/storefront/storefront-reviews.ts`. When zero approved rows exist, ratings and review cards are hidden; home shows an honest empty message. `data/reviews.ts` is seed-only (not shown on the storefront).
 - **Customer review links:** `/review/{publicId}?token={reviewToken}` — token assigned on admin order view; invalid token/publicId returns generic message (no leak).
 - **WhatsApp review requests:** Admin opens prefilled `wa.me` to customer phone from order detail; admin sends manually. Automatic WhatsApp Business API sending is a future optional upgrade.
 - A future phase may add additional customer-submitted flows — do not expose unmoderated content publicly.
