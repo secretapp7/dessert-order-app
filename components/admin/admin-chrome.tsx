@@ -5,7 +5,9 @@ import { adminLogoutAction } from "@/app/admin/login/actions";
 const links: { href: string; label: string; disabled?: boolean }[] = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/customers", label: "Customers" },
   { href: "/admin/production", label: "Production" },
+  { href: "/admin/inventory", label: "Inventory" },
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/offers", label: "Offers" },

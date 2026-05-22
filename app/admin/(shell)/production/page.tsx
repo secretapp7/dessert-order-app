@@ -11,6 +11,9 @@ import {
   type ProductionProductGroup,
 } from "@/lib/admin/data/production-queries";
 import { addUtcCalendarDays, utcIsoToday } from "@/lib/availability/availability-service";
+import { getLowStockItems } from "@/lib/admin/data/inventory-queries";
+import { INVENTORY_TYPE_LABELS, INVENTORY_UNIT_LABELS } from "@/lib/admin/inventory-serialize";
+import { InventoryItemType } from "@prisma/client";
 
 export default async function AdminProductionPage({
   searchParams,
@@ -21,6 +24,9 @@ export default async function AdminProductionPage({
   const todayIso = utcIsoToday();
   const view = sp.view === "week" ? "week" : "day";
   const selectedDate = parseProductionDateIso(sp.date) ?? todayIso;
+  const lowStockItems = (await getLowStockItems(8)).filter(
+    (i) => i.type === InventoryItemType.INGREDIENT || i.type === InventoryItemType.PACKAGING,
+  );
 
   if (view === "week") {
     const weekDays = getProductionWeekDayIsos(todayIso, 7);
@@ -35,6 +41,7 @@ export default async function AdminProductionPage({
           view="week"
         />
         <WeekOverviewTable plans={plans} todayIso={todayIso} />
+        <InventoryLowStockSection items={lowStockItems} />
       </div>
     );
   }
@@ -49,6 +56,8 @@ export default async function AdminProductionPage({
         selectedDate={selectedDate}
         view="day"
       />
+
+      <InventoryLowStockSection items={lowStockItems} />
 
       <DateNav selectedDate={selectedDate} todayIso={todayIso} />
 
@@ -445,6 +454,61 @@ function WeekOverviewTable({ plans, todayIso }: { plans: ProductionPlan[]; today
           </tbody>
         </table>
       </div>
+    </section>
+  );
+}
+
+function InventoryLowStockSection({
+  items,
+}: {
+  items: Awaited<ReturnType<typeof getLowStockItems>>;
+}) {
+  return (
+    <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm print:hidden">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+          Inventory planning
+        </h2>
+        <Link
+          href="/admin/inventory"
+          className="text-xs font-semibold text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+        >
+          Open inventory
+        </Link>
+      </div>
+      <p className="mt-1 text-[11px] text-[color:var(--muted-text)]">
+        Inventory planning is manual until recipe links are added. Stock is not deducted from orders in this phase.
+      </p>
+      {items.length === 0 ? (
+        <p className="mt-3 text-sm text-[color:var(--muted-text)]">No low-stock ingredients or packaging right now.</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {items.map((item) => (
+            <li
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[color:var(--border-soft)] bg-white/80 px-3 py-2 text-sm"
+            >
+              <div>
+                <Link
+                  href={`/admin/inventory/${item.id}`}
+                  className="font-semibold text-[color:var(--brand-burgundy-soft)] hover:underline"
+                >
+                  {item.nameEn}
+                </Link>
+                <span className="ml-2 text-[10px] text-[color:var(--muted-text)]">
+                  {INVENTORY_TYPE_LABELS[item.type]}
+                </span>
+              </div>
+              <span className="text-xs tabular-nums text-[color:var(--accent-cocoa)]">
+                {item.currentQuantity.toFixed(3)} {INVENTORY_UNIT_LABELS[item.unit]}
+                {item.lowStockThreshold != null ? (
+                  <span className="ml-1 text-[color:var(--brand-burgundy-soft)]">· low</span>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

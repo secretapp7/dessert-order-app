@@ -2,6 +2,25 @@
 
 ## Current phase
 
+**Phase 13 — Inventory, ingredients & packaging stock tracker (completed)**
+
+- **Routes:** `/admin/inventory`, `/admin/inventory/new`, `/admin/inventory/[id]`, `/admin/inventory/movements`, `/admin/inventory/categories`.
+- **Schema (additive):** `InventoryCategory`, `InventoryItem`, `InventoryMovement` with enums `InventoryItemType`, `InventoryUnit`, `InventoryMovementType`.
+- **Data:** `lib/admin/data/inventory-queries.ts` — list/detail, categories, movements, dashboard summary, low-stock, CSV export rows.
+- **Actions:** `lib/admin/actions/inventory-actions.ts` — item CRUD, stock movements (transaction updates `currentQuantity`), category CRUD; all `requireAdmin()`.
+- **Rules:** Stock changes via movements; negative stock blocked except `MANUAL_CORRECTION`; delete item only with zero movements; delete category only with zero items; low-stock from thresholds.
+- **Integrations:** Dashboard inventory card; production board low-stock warning; CSV export at `/admin/reports/export/inventory` and `inventory-movements`.
+- **Future:** Phase 14 — recipe/product-size links for automatic usage deduction.
+
+**Phase 12 — Customer CRM / repeat customer insights (completed)**
+
+- **Routes:** `/admin/customers`, `/admin/customers/[id]` — search, filters (repeat, VIP, unpaid, blocked), sort, WhatsApp click-to-chat.
+- **Schema (additive):** `Customer.internalNote`, `tags`, `preferredLanguage`, `lastContactedAt`, `isVip`, `isBlocked`.
+- **Data:** `lib/admin/data/customer-queries.ts` — list/detail stats, order history, product preferences, review history (matched by name), dashboard + report insights.
+- **Actions:** Profile, note, tags, language, VIP/block toggles, last-contacted timestamp — all `requireAdmin()`.
+- **WhatsApp:** `lib/admin/customer-whatsapp.ts` — thank-you, payment reminder, follow-up templates (EN/AR); review request reuses order review helper.
+- **Integrations:** Dashboard customer card; reports hub customer insights section.
+
 **Phase 11 — Final polish, testing, cleanup & launch readiness (completed)**
 
 - **Route audit:** All public routes (`/`, `/menu`, `/products/[slug]`, `/order`, `/contact`, `/review/[publicId]`) and admin routes build and compile; admin shell protected via middleware + `requireAdmin()`; CSV export and image upload require session.

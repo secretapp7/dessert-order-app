@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import { getAvailabilityDashboardBrief } from "@/lib/admin/data/availability-dashboard";
+import { getRepeatCustomerInsights } from "@/lib/admin/data/customer-queries";
+import { getInventoryDashboardSummary } from "@/lib/admin/data/inventory-queries";
 import { getProductionDashboardSummary } from "@/lib/admin/data/production-queries";
 import { getReviewDashboardSummary } from "@/lib/admin/data/review-queries";
 import { getAdminDashboardSnapshot } from "@/lib/admin/dashboard-data";
@@ -10,11 +12,13 @@ function money(n: number) {
 }
 
 export default async function AdminDashboardPage() {
-  const [data, avail, production, reviews] = await Promise.all([
+  const [data, avail, production, reviews, customers, inventory] = await Promise.all([
     getAdminDashboardSnapshot(),
     getAvailabilityDashboardBrief(),
     getProductionDashboardSummary(),
     getReviewDashboardSummary(),
+    getRepeatCustomerInsights(),
+    getInventoryDashboardSummary(),
   ]);
   const p = data.profitBrief;
 
@@ -63,6 +67,36 @@ export default async function AdminDashboardPage() {
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+            Inventory & stock
+          </h2>
+          <Link
+            href="/admin/inventory"
+            className="text-xs font-semibold text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+          >
+            Manage inventory
+          </Link>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MiniStat title="Active items" value={String(inventory.totalActiveItems)} />
+          <MiniStat title="Low stock" value={String(inventory.lowStockCount)} />
+          <MiniStat title="Packaging low stock" value={String(inventory.packagingLowStockCount)} />
+          <MiniStat title="Est. stock value" value={`${money(inventory.totalEstimatedValueOmr)} OMR`} />
+        </div>
+        {inventory.lowStockCount > 0 ? (
+          <p className="mt-2 text-[11px] text-[color:var(--muted-text)]">
+            <Link
+              href="/admin/inventory?low=1"
+              className="font-semibold text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+            >
+              {inventory.lowStockCount} item{inventory.lowStockCount === 1 ? "" : "s"} below threshold
+            </Link>
+          </p>
+        ) : null}
+      </section>
+
+      <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
             Reviews & testimonials
           </h2>
           <Link
@@ -91,6 +125,33 @@ export default async function AdminDashboardPage() {
             </>
           ) : null}
         </p>
+      </section>
+
+      <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+            Customers
+          </h2>
+          <Link
+            href="/admin/customers"
+            className="text-xs font-semibold text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+          >
+            Customer CRM
+          </Link>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MiniStat title="Total customers" value={String(customers.totalCustomers)} />
+          <MiniStat title="Repeat customers" value={String(customers.repeatCustomerCount)} />
+          <MiniStat title="With unpaid orders" value={String(customers.customersWithUnpaidCount)} />
+          <MiniStat
+            title="Top customer (month)"
+            value={
+              customers.topCustomerThisMonth
+                ? `${customers.topCustomerThisMonth.name} · ${customers.topCustomerThisMonth.spentOmr.toFixed(3)} OMR`
+                : "—"
+            }
+          />
+        </div>
       </section>
 
       <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">

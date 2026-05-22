@@ -78,6 +78,38 @@ enum ReviewStatus {
   HIDDEN
 }
 
+enum InventoryItemType {
+  INGREDIENT
+  PACKAGING
+  SUPPLY
+  TOOL
+  OTHER
+}
+
+enum InventoryUnit {
+  GRAM
+  KILOGRAM
+  MILLILITER
+  LITER
+  PIECE
+  PACK
+  BOX
+  BAG
+  BOTTLE
+  CAN
+  OTHER
+}
+
+enum InventoryMovementType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+  WASTE
+  RESERVED
+  RELEASED
+  MANUAL_CORRECTION
+}
+
 // ---------------------------------------------------------------------------
 // Models
 // ---------------------------------------------------------------------------
@@ -97,17 +129,27 @@ model AdminUser {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  name      String
-  phone     String
-  email     String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String    @id @default(cuid())
+  name              String
+  phone             String
+  email             String?
+  notes             String?
+  /// Admin-only CRM note (not shown to customers).
+  internalNote      String?   @db.Text
+  /// Comma-separated admin tags.
+  tags              String?   @db.Text
+  preferredLanguage String?
+  lastContactedAt   DateTime?
+  isVip             Boolean   @default(false)
+  isBlocked         Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   orders Order[]
 
   @@index([phone])
+  @@index([isVip])
+  @@index([isBlocked])
   @@map("customers")
 }
 
@@ -380,4 +422,73 @@ model BusinessSetting {
   updatedAt DateTime @updatedAt
 
   @@map("business_settings")
+}
+
+model InventoryCategory {
+  id          String            @id @default(cuid())
+  nameEn      String
+  nameAr      String?
+  slug        String            @unique
+  type        InventoryItemType
+  description String?
+  sortOrder   Int               @default(0)
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  items InventoryItem[]
+
+  @@index([type, isActive])
+  @@map("inventory_categories")
+}
+
+model InventoryItem {
+  id                 String            @id @default(cuid())
+  categoryId         String?
+  type               InventoryItemType
+  nameEn             String
+  nameAr             String?
+  sku                String?           @unique
+  unit               InventoryUnit
+  currentQuantity    Decimal           @default(0) @db.Decimal(12, 3)
+  lowStockThreshold  Decimal?          @db.Decimal(12, 3)
+  reorderQuantity    Decimal?          @db.Decimal(12, 3)
+  averageUnitCostOmr Decimal?          @db.Decimal(12, 3)
+  supplierName       String?
+  supplierContact    String?
+  storageLocation    String?
+  notes              String?           @db.Text
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  category  InventoryCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  movements InventoryMovement[]
+
+  @@index([type, isActive])
+  @@index([categoryId])
+  @@index([nameEn])
+  @@index([currentQuantity])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id            String                @id @default(cuid())
+  itemId        String
+  type          InventoryMovementType
+  quantity      Decimal               @db.Decimal(12, 3)
+  unit          InventoryUnit
+  unitCostOmr   Decimal?              @db.Decimal(12, 3)
+  totalCostOmr  Decimal?              @db.Decimal(12, 3)
+  reason        String?
+  referenceType String?
+  referenceId   String?
+  movementDate  DateTime              @default(now())
+  createdAt     DateTime              @default(now())
+
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, movementDate])
+  @@index([type, movementDate])
+  @@map("inventory_movements")
 }

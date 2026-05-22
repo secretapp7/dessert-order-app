@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { PrismaClient, Prisma, ProductImageType, ReviewStatus } from "@prisma/client";
+import { PrismaClient, Prisma, ProductImageType, ReviewStatus, InventoryItemType } from "@prisma/client";
 
 import { translations } from "../config/translations";
 import { products as staticProducts } from "../data/products";
@@ -42,6 +42,14 @@ const categoryDefs = [
   { slug: "cups", sortOrder: 1 },
   { slug: "trays", sortOrder: 2 },
   { slug: "offers", sortOrder: 3 },
+] as const;
+
+const inventoryCategoryDefs = [
+  { slug: "ingredients", nameEn: "Ingredients", nameAr: "مكونات", type: InventoryItemType.INGREDIENT, sortOrder: 0 },
+  { slug: "packaging", nameEn: "Packaging", nameAr: "تغليف", type: InventoryItemType.PACKAGING, sortOrder: 1 },
+  { slug: "supplies", nameEn: "Supplies", nameAr: "مستلزمات", type: InventoryItemType.SUPPLY, sortOrder: 2 },
+  { slug: "tools", nameEn: "Tools", nameAr: "أدوات", type: InventoryItemType.TOOL, sortOrder: 3 },
+  { slug: "other", nameEn: "Other", nameAr: "أخرى", type: InventoryItemType.OTHER, sortOrder: 4 },
 ] as const;
 
 function bilingualNoteJson(en: string, ar: string) {
@@ -255,6 +263,21 @@ async function main() {
     skipDuplicates: true,
   });
 
+  for (const def of inventoryCategoryDefs) {
+    const existing = await prisma.inventoryCategory.findUnique({ where: { slug: def.slug } });
+    if (existing) continue;
+    await prisma.inventoryCategory.create({
+      data: {
+        nameEn: def.nameEn,
+        nameAr: def.nameAr,
+        slug: def.slug,
+        type: def.type,
+        sortOrder: def.sortOrder,
+        isActive: true,
+      },
+    });
+  }
+
   const productsBySlug = new Map(
     (await prisma.product.findMany({ select: { id: true, slug: true } })).map((p) => [p.slug, p.id]),
   );
@@ -284,7 +307,7 @@ async function main() {
     });
   }
 
-  console.log("Seed finished: categories, products, sizes, images, business_settings, availability defaults, reviews (skip existing).");
+  console.log("Seed finished: categories, products, sizes, images, business_settings, availability defaults, inventory categories (skip existing), reviews (skip existing).");
 }
 
 main()

@@ -17,10 +17,30 @@ This document records **safe defaults** for catalog and operations data. It comp
 | **Production board** | N/A (read-only planning view) | N/A | `/admin/production` groups non-cancelled orders by UTC `dateNeeded`; archived orders still count; print sheet is browser-based. |
 | **Settings** | Business identity, contact channels, customer-facing copy | N/A | `BusinessSetting` key/value; falls back to static config; secrets stay in env. |
 | **Reviews** | Customer name (EN/AR optional), rating, bilingual comment, optional product, source, featured/sort, approve/hide | **Delete** allowed (customer-name confirmation) — marketing content, not financial records | Only **`APPROVED`** rows appear on storefront; zero approved reviews shows an empty-state message (no static testimonials). **Customer submissions** via `/review/{publicId}?token=…` → `PENDING` until approved; one review per order (`Order.reviewedAt`). |
+| **Customers (CRM)** | Profile (name, phone, email), internal note, tags, preferred language, VIP/block flags, last contacted | **No delete** in Phase 12 — tied to order history | Created/updated on order persist by phone. Insights from real `Order` / `OrderItem` rows. WhatsApp actions use free `api.whatsapp.com/send` click-to-chat only. Reviews matched by customer name (no FK yet). |
+| **Inventory** | Items (ingredient/packaging/supply/tool/other), categories, stock movements | **Deactivate** preferred; **Delete item** only if zero movements; **Delete category** only if zero items | `currentQuantity` updated by movements; low-stock from `lowStockThreshold`; recipe auto-usage is **future phase**. Movements are append-only — corrections via new adjustment/correction rows. |
 
-**Hard deletes that are comparatively safe**: empty categories; product/size rows never referenced by `order_items`; product images (media records only); offers while unreferenced by orders.
+**Hard deletes that are comparatively safe**: empty categories; product/size rows never referenced by `order_items`; product images (media records only); offers while unreferenced by orders; inventory items with **no movement history**; inventory categories with **no items**.
 
 **Prefer soft workflows**: archiving orders; hiding/deactivating products and categories; voiding duplicate expenses instead of wiping history.
+
+## Customers (CRM)
+
+- Customers are **derived from real orders** — `persistOrder` upserts by phone on each submission.
+- **Do not delete** customer rows casually; they link to order history and CRM insights.
+- Admin-only fields: `internalNote`, `tags`, `isVip`, `isBlocked`, `preferredLanguage`, `lastContactedAt`.
+- `isBlocked` is an admin CRM flag in Phase 12 — it does **not** block the public order form yet.
+- WhatsApp templates (thank-you, follow-up, payment reminder) use preferred language → latest order language → English.
+- Review history on the CRM detail page matches `Review.customerName` (case-insensitive); not a hard FK.
+
+## Inventory & stock
+
+- Track **ingredients**, **packaging**, **supplies**, **tools**, and **other** items with units, costs, suppliers, and storage location.
+- **Stock changes** must go through **movements** (`STOCK_IN`, `STOCK_OUT`, `WASTE`, `ADJUSTMENT`, `MANUAL_CORRECTION`, etc.) — do not edit `currentQuantity` directly in the DB.
+- **Low-stock alerts** compare `currentQuantity` to `lowStockThreshold` when a threshold is set.
+- **Delete item** only when the item has **zero movements**; otherwise **deactivate** (`isActive: false`).
+- **Delete category** only when **no items** reference it; otherwise deactivate.
+- **Recipe-based auto deduction** from orders/production is **not** implemented yet — production board shows manual low-stock warnings only.
 
 ## Orders
 
@@ -145,6 +165,6 @@ Additive nullable columns preserve existing orders; destructive operations still
 
 ## Seed script (`npm run prisma:seed`)
 
-- **Safe on empty DB** — creates categories, products, sizes, images, default settings, availability defaults, and static reviews (skip if ID exists).
+- **Safe on empty DB** — creates categories, products, sizes, images, default settings, availability defaults, default inventory categories (skip if slug exists), and static reviews (skip if ID exists).
 - **Not safe after live admin edits** — re-seed **upserts** product/category rows from static files and **replaces** product images and sizes for seeded slugs. Business settings use `skipDuplicates` only.
 - **Production:** run seed once at initial setup; never as routine cleanup. See `docs/cleanup-guide.md`.

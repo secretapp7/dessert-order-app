@@ -1,12 +1,16 @@
 import Link from "next/link";
 
 import { ReportsNav } from "@/components/admin/reports/report-chrome";
+import { getCustomerReportInsights } from "@/lib/admin/data/customer-queries";
 import { getMonthlyBusinessReport } from "@/lib/admin/data/monthly-report-queries";
 import { utcCurrentMonthLabel } from "@/lib/admin/data/report-queries";
 
 export default async function AdminReportsHubPage() {
   const month = utcCurrentMonthLabel();
-  const report = await getMonthlyBusinessReport(month);
+  const [report, customerInsights] = await Promise.all([
+    getMonthlyBusinessReport(month),
+    getCustomerReportInsights(5),
+  ]);
   const s = report.summary;
 
   return (
@@ -38,6 +42,65 @@ export default async function AdminReportsHubPage() {
           <Mini title="Unpaid receivables" value={`${s.unpaidTotal.toFixed(3)} OMR`} />
         </div>
       </section>
+
+      <section className="rounded-2xl border border-[color:var(--border-soft)] bg-[color:var(--card-beige)] p-4 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+            Customer insights
+          </h2>
+          <Link
+            href="/admin/customers"
+            className="text-xs font-semibold text-[color:var(--brand-burgundy-soft)] underline-offset-2 hover:underline"
+          >
+            Open CRM
+          </Link>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <InsightList title="Top by spending" rows={customerInsights.topBySpending.map((r) => ({
+            id: r.id,
+            label: r.name,
+            detail: `${r.spentOmr.toFixed(3)} OMR · ${r.orderCount} orders`,
+          }))} />
+          <InsightList title="Top repeat customers" rows={customerInsights.topRepeat.map((r) => ({
+            id: r.id,
+            label: r.name,
+            detail: `${r.orderCount} orders · ${r.spentOmr.toFixed(3)} OMR`,
+          }))} />
+          <InsightList title="Unpaid balances" rows={customerInsights.unpaidCustomers.map((r) => ({
+            id: r.id,
+            label: r.name,
+            detail: `${r.unpaidOmr.toFixed(3)} OMR unpaid`,
+          }))} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function InsightList({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: Array<{ id: string; label: string; detail: string }>;
+}) {
+  return (
+    <div className="rounded-xl bg-[color:var(--card-cream)] p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[color:var(--muted-text)]">{title}</p>
+      {rows.length === 0 ? (
+        <p className="mt-2 text-xs text-[color:var(--muted-text)]">No data yet.</p>
+      ) : (
+        <ul className="mt-2 space-y-2 text-sm">
+          {rows.map((r) => (
+            <li key={r.id}>
+              <Link href={`/admin/customers/${r.id}`} className="font-semibold text-[color:var(--brand-burgundy-soft)] hover:underline">
+                {r.label}
+              </Link>
+              <p className="text-[11px] text-[color:var(--muted-text)]">{r.detail}</p>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

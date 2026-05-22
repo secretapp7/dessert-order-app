@@ -4,12 +4,17 @@ import { MonthSelector, ReportsNav } from "@/components/admin/reports/report-chr
 import { monthNavLabels, utcCurrentMonthLabel } from "@/lib/admin/data/report-queries";
 import { parseReportMonthParam } from "@/lib/admin/validation/report-export";
 
-const exports = [
+const monthExports = [
   { type: "orders", label: "Orders CSV", href: (m: string) => `/admin/reports/export/orders?month=${m}` },
   { type: "order-items", label: "Order items CSV", href: (m: string) => `/admin/reports/export/order-items?month=${m}` },
   { type: "expenses", label: "Expenses CSV", href: (m: string) => `/admin/reports/export/expenses?month=${m}` },
   { type: "profit", label: "Profit summary CSV", href: (m: string) => `/admin/reports/export/profit?month=${m}` },
   { type: "products", label: "Product sales CSV", href: (m: string) => `/admin/reports/export/products?month=${m}` },
+] as const;
+
+const inventoryExports = [
+  { type: "inventory", label: "Inventory snapshot CSV", href: "/admin/reports/export/inventory" },
+  { type: "inventory-movements", label: "Inventory movements CSV", href: "/admin/reports/export/inventory-movements" },
 ] as const;
 
 export default async function AdminExportPage({
@@ -45,7 +50,7 @@ export default async function AdminExportPage({
       </section>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {exports.map((e) => (
+        {monthExports.map((e) => (
           <Link
             key={e.type}
             href={e.href(month)}
@@ -56,8 +61,29 @@ export default async function AdminExportPage({
         ))}
       </div>
 
+      <div>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-[color:var(--brand-gold-muted)]">
+          Inventory exports
+        </h2>
+        <p className="mt-1 text-[11px] text-[color:var(--muted-text)]">
+          Current stock snapshot and full movement history (not filtered by month).
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {inventoryExports.map((e) => (
+            <Link
+              key={e.type}
+              href={e.href}
+              className="flex min-h-14 items-center justify-center rounded-2xl border border-[color:var(--border-soft)] bg-white/80 px-4 py-3 text-sm font-semibold text-[color:var(--brand-burgundy)] shadow-sm hover:bg-[color:var(--card-cream)]"
+            >
+              Download {e.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
       <p className="text-[11px] text-[color:var(--muted-text)]">
-        Files named <span className="font-mono">coco-treats-*-{month}.csv</span>
+        Monthly files named <span className="font-mono">coco-treats-*-{month}.csv</span> · inventory files{" "}
+        <span className="font-mono">coco-treats-inventory*.csv</span>
       </p>
     </div>
   );

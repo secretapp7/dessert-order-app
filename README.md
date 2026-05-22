@@ -1,6 +1,6 @@
 # Coco Treats — Dessert order app
 
-Mobile-first bilingual (English / Arabic) storefront for **Coco Treats** in Muscat. Customers browse the menu, place pickup or delivery orders, and continue on **WhatsApp**. Orders are saved to **PostgreSQL** before WhatsApp opens. An **admin dashboard** manages catalog, orders, production, availability, expenses, reports, reviews, and settings.
+Mobile-first bilingual (English / Arabic) storefront for **Coco Treats** in Muscat. Customers browse the menu, place pickup or delivery orders, and continue on **WhatsApp**. Orders are saved to **PostgreSQL** before WhatsApp opens. An **admin dashboard** manages catalog, orders, production, inventory, availability, expenses, reports, reviews, and settings.
 
 ---
 
@@ -18,8 +18,9 @@ Mobile-first bilingual (English / Arabic) storefront for **Coco Treats** in Musc
 ### Admin dashboard (`/admin`)
 
 - Login (bcrypt + JWT session cookie)
-- Orders, production board, products, categories, offers
-- Expenses and profit / monthly reports + CSV export
+- Orders, customers (CRM), production board, **inventory & stock tracker**
+- Products, categories, offers
+- Expenses and profit / monthly reports + CSV export (including inventory snapshot)
 - Availability and capacity management
 - Reviews (approve customer submissions)
 - Business settings (contact, copy, notes)
